@@ -1,86 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Scissors, Users, FileText, MessageSquare, 
-  DollarSign, Activity, Plus, MapPin, 
+import {
+  Scissors, Users, FileText, MessageSquare,
+  DollarSign, Activity, Plus, MapPin,
   Download, Calendar, Trash2, PlusCircle,
   ChevronLeft, ChevronRight, RefreshCw
 } from "lucide-react";
 import "./App.css";
 
 // --- Types & Schema Definitions ---
-interface GarmentMeasurements {
-  shirt: {
-    length: string; // उंची
-    chest: string;  // छाती
-    waist: string;  // पोट
-    seat: string;   // शिट
-    shoulder: string; // शोल्डर
-    sleeve: string;   // बाही
-    collar: string;   // कॉलर
-    cuff: string;     // कफ
-    pocket: boolean;
-    manela: boolean; // मनेला
-    apple: boolean;  // ॲपल
-    sideCut: boolean;
-  };
-  pant: {
-    length: string; // उंची
-    waist: string;  // कंबर
-    seat: string;   // सीट
-    knee: string;   // गुडघा
-    bottom: string; // बॉटम
-    thigh: string;  // मांडी
-    inseam: string; // अंदर
-    front: string;  // फ्रंट
-    tight: boolean;
-    loose: boolean;
-  };
-  kurta: {
-    length: string;
-    chest: string;
-    waist: string;
-    seat: string;
-    shoulder: string;
-    sleeve: string;
-    collar: string;
-  };
-  safari: {
-    length: string;
-    chest: string;
-    waist: string;
-    seat: string;
-    shoulder: string;
-    sleeve: string;
-    collar: string;
-  };
-  blazer: {
-    length: string;
-    chest: string;
-    waist: string;
-    seat: string;
-    shoulder: string;
-    sleeve: string;
-    lapel: string;
-    acrossBack: string;
-  };
-  sherwani: {
-    length: string;
-    chest: string;
-    waist: string;
-    seat: string;
-    shoulder: string;
-    sleeve: string;
-    collar: string;
-  };
-  jacket: {
-    length: string;
-    chest: string;
-    waist: string;
-    seat: string;
-    shoulder: string;
-    sleeve: string;
-  };
+// Dynamic Garment Categories (Settings-configurable)
+interface MeasurementFieldDef {
+  point: string; // e.g. "1."
+  name: string;  // e.g. "उंची"
 }
+
+interface GarmentCategory {
+  id: string;
+  title: string;
+  fields: MeasurementFieldDef[];
+}
+
+const getFieldLabel = (field: MeasurementFieldDef): string =>
+  field.point && field.name ? `${field.point} ${field.name}` : field.point || field.name;
 
 interface Customer {
   id: string;
@@ -88,11 +29,11 @@ interface Customer {
   phone: string;
   email: string;
   address: string;
-  measurements: GarmentMeasurements;
+  measurements: Record<string, Record<string, string>>;
 }
 
 interface OrderItem {
-  name: string; // SHIRT, PANT, KURTA, SAFARI, JACKET, BLAZER, SHERWANI
+  name: string;
   qty: number;
   rate: number;
 }
@@ -127,13 +68,25 @@ const INITIAL_CUSTOMERS: Customer[] = [
     email: "sunil.patil@gmail.com",
     address: "Kharghar, Sector 12, Navi Mumbai",
     measurements: {
-      shirt: { length: "30", chest: "40", waist: "36", seat: "38", shoulder: "18", sleeve: "24", collar: "16", cuff: "9.5", pocket: true, manela: true, apple: false, sideCut: true },
-      pant: { length: "41", waist: "34", seat: "40", knee: "19", bottom: "16", thigh: "23", inseam: "31", front: "10.5", tight: true, loose: false },
-      kurta: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-      safari: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-      blazer: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", lapel: "", acrossBack: "" },
-      sherwani: { length: "44", chest: "40", waist: "36", seat: "38", shoulder: "18", sleeve: "24", collar: "16" },
-      jacket: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "" }
+      blouse: {
+        "1. उंची": "30",
+        "2. शोल्डर": "18",
+        "3. छाती": "40",
+        "4. कंबर": "36",
+        "5. शिट": "38",
+        "6. बाही": "24",
+        "7. पु. गळा": "16",
+        "8. मा. गळा": ""
+      },
+      pant: {
+        "1. उंची": "41",
+        "2. कंबर": "34",
+        "3. हिट": "40",
+        "4. मांडी": "23",
+        "5. गुडघा": "19",
+        "6. बॉटम": "16",
+        "7. अंदर लाईन": "31"
+      }
     }
   },
   {
@@ -143,13 +96,25 @@ const INITIAL_CUSTOMERS: Customer[] = [
     email: "rajesh.shinde@yahoo.com",
     address: "Panvel, Near Station",
     measurements: {
-      shirt: { length: "29", chest: "38", waist: "34", seat: "37", shoulder: "17.5", sleeve: "23.5", collar: "15.5", cuff: "9", pocket: true, manela: false, apple: true, sideCut: false },
-      pant: { length: "40", waist: "32", seat: "38", knee: "18", bottom: "15.5", thigh: "22", inseam: "30", front: "10", tight: false, loose: true },
-      kurta: { length: "40", chest: "38", waist: "34", seat: "38", shoulder: "17.5", sleeve: "23.5", collar: "15.5" },
-      safari: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-      blazer: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", lapel: "", acrossBack: "" },
-      sherwani: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-      jacket: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "" }
+      blouse: {
+        "1. उंची": "29",
+        "2. शोल्डर": "17.5",
+        "3. छाती": "38",
+        "4. कंबर": "34",
+        "5. शिट": "37",
+        "6. बाही": "23.5",
+        "7. पु. गळा": "15.5",
+        "8. मा. गळा": ""
+      },
+      pant: {
+        "1. उंची": "40",
+        "2. कंबर": "32",
+        "3. हिट": "38",
+        "4. मांडी": "22",
+        "5. गुडघा": "18",
+        "6. बॉटम": "15.5",
+        "7. अंदर लाईन": "30"
+      }
     }
   }
 ];
@@ -186,46 +151,46 @@ const INITIAL_ORDERS: Order[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "calendar" | "crm" | "invoices" | "comms" | "backup">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "calendar" | "crm" | "invoices" | "comms" | "backup" | "settings">("dashboard");
   const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem("matchwel_customers");
+    const saved = localStorage.getItem("lucky_ladies_customers");
     if (saved) return JSON.parse(saved);
-    const isInit = localStorage.getItem("matchwel_initialized");
+    const isInit = localStorage.getItem("lucky_ladies_initialized");
     if (isInit === "false") return [];
     return INITIAL_CUSTOMERS;
   });
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem("matchwel_orders");
+    const saved = localStorage.getItem("lucky_ladies_orders");
     if (saved) return JSON.parse(saved);
-    const isInit = localStorage.getItem("matchwel_initialized");
+    const isInit = localStorage.getItem("lucky_ladies_initialized");
     if (isInit === "false") return [];
     return INITIAL_ORDERS;
   });
 
   useEffect(() => {
-    localStorage.setItem("matchwel_customers", JSON.stringify(customers));
-    if (customers.length > 0 && localStorage.getItem("matchwel_initialized") !== "true") {
-      localStorage.setItem("matchwel_initialized", "true");
+    localStorage.setItem("lucky_ladies_customers", JSON.stringify(customers));
+    if (customers.length > 0 && localStorage.getItem("lucky_ladies_initialized") !== "true") {
+      localStorage.setItem("lucky_ladies_initialized", "true");
     }
   }, [customers]);
 
   useEffect(() => {
-    localStorage.setItem("matchwel_orders", JSON.stringify(orders));
+    localStorage.setItem("lucky_ladies_orders", JSON.stringify(orders));
   }, [orders]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("c1");
   const [commsLog, setCommsLog] = useState<CommLog[]>(() => {
-    const saved = localStorage.getItem("matchwel_comms_log");
+    const saved = localStorage.getItem("lucky_ladies_comms_log");
     if (saved) return JSON.parse(saved);
-    const isInit = localStorage.getItem("matchwel_initialized");
+    const isInit = localStorage.getItem("lucky_ladies_initialized");
     if (isInit === "false") return [];
     return [
-      { id: "l1", time: "09:12:00", type: "SMS", recipient: "Sunil Patil", message: "MATCHWEL: Hi Sunil Patil, your stitching of the shirt and pant (Bill No: #0) is ready! Just pick up from our store. - MATCHWEL TAILORS", status: "Sent" }
+      { id: "l1", time: "09:12:00", type: "SMS", recipient: "Sunil Patil", message: "लकी लेडिज टेलर्स: Hi Sunil Patil, your stitching of the top and pant (Bill No: #0) is ready! Just pick up from our store. - LUCKY LADIES TAILORS", status: "Sent" }
     ];
   });
 
   useEffect(() => {
-    localStorage.setItem("matchwel_comms_log", JSON.stringify(commsLog));
+    localStorage.setItem("lucky_ladies_comms_log", JSON.stringify(commsLog));
   }, [commsLog]);
 
   // Calendar states
@@ -242,7 +207,53 @@ export default function App() {
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState("");
   const [dashboardDeliveryFilter, setDashboardDeliveryFilter] = useState<"today" | "all">("today");
   const [commsDeliveryFilter, setCommsDeliveryFilter] = useState<"today" | "all">("today");
-  const [whatsappSenderNum, setWhatsappSenderNum] = useState("7028331155");
+  const [whatsappSenderNum, setWhatsappSenderNum] = useState("9860980386");
+
+  // Dynamic garment categories configured via Settings
+  const [categories, setCategories] = useState<GarmentCategory[]>(() => {
+    const saved = localStorage.getItem("lucky_categories");
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: "blouse",
+        title: "टॉप / ब्लाऊज (Top / Blouse)",
+        fields: [
+          { point: "1.", name: "उंची" },
+          { point: "2.", name: "शोल्डर" },
+          { point: "3.", name: "छाती" },
+          { point: "4.", name: "कंबर" },
+          { point: "5.", name: "शिट" },
+          { point: "6.", name: "बाही" },
+          { point: "7.", name: "पु. गळा" },
+          { point: "8.", name: "मा. गळा" }
+        ]
+      },
+      {
+        id: "pant",
+        title: "पॅंट (Pant)",
+        fields: [
+          { point: "1.", name: "उंची" },
+          { point: "2.", name: "कंबर" },
+          { point: "3.", name: "हिट" },
+          { point: "4.", name: "मांडी" },
+          { point: "5.", name: "गुडघा" },
+          { point: "6.", name: "बॉटम" },
+          { point: "7.", name: "अंदर लाईन" }
+        ]
+      }
+    ];
+  });
+
+  const [editCategories, setEditCategories] = useState<GarmentCategory[]>([]);
+
+  useEffect(() => {
+    if (activeTab === "settings") {
+      setEditCategories(categories.map(c => ({
+        ...c,
+        fields: [...c.fields]
+      })));
+    }
+  }, [activeTab, categories]);
 
   // Single unified "Add stitch booking & customer" form modal state
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -257,90 +268,22 @@ export default function App() {
   const [isExistingClient, setIsExistingClient] = useState(false);
 
   // Checkboxes list of active categories on modal form
-  const [visibleSpecCategories, setVisibleSpecCategories] = useState<string[]>(["shirt", "pant"]);
+  const [visibleSpecCategories, setVisibleSpecCategories] = useState<string[]>(["blouse", "pant"]);
 
   // Orders pipeline tab status filter state
   const [ordersPipelineFilter, setOrdersPipelineFilter] = useState<string>("All");
 
-  // Shirt form parameters
-  const [sLength, setSLength] = useState("");
-  const [sChest, setSChest] = useState("");
-  const [sWaist, setSWaist] = useState("");
-  const [sSeat, setSSeat] = useState("");
-  const [sShoulder, setSShoulder] = useState("");
-  const [sSleeve, setSSleeve] = useState("");
-  const [sCollar, setSCollar] = useState("");
-  const [sCuff, setSCuff] = useState("");
-  const [sPocket, setSPocket] = useState(true);
-  const [sManela, setSManela] = useState(false);
-  const [sApple, setSApple] = useState(false);
-  const [sSideCut, setSSideCut] = useState(false);
-
-  // Pant form parameters
-  const [pLength, setPLength] = useState("");
-  const [pWaist, setPWaist] = useState("");
-  const [pSeat, setPSeat] = useState("");
-  const [pKnee, setPKnee] = useState("");
-  const [pBottom, setPBottom] = useState("");
-  const [pThigh, setPThigh] = useState("");
-  const [pInseam, setPInseam] = useState("");
-  const [pFront, setPFront] = useState("");
-  const [pTight, setPTight] = useState(false);
-  const [pLoose, setPLoose] = useState(false);
-
-  // Kurta parameters
-  const [kLength, setKLength] = useState("");
-  const [kChest, setKChest] = useState("");
-  const [kWaist, setKWaist] = useState("");
-  const [kSeat, setKSeat] = useState("");
-  const [kShoulder, setKShoulder] = useState("");
-  const [kSleeve, setKSleeve] = useState("");
-  const [kCollar, setKCollar] = useState("");
-
-  // Safari parameters
-  const [sfLength, setSfLength] = useState("");
-  const [sfChest, setSfChest] = useState("");
-  const [sfWaist, setSfWaist] = useState("");
-  const [sfSeat, setSfSeat] = useState("");
-  const [sfShoulder, setSfShoulder] = useState("");
-  const [sfSleeve, setSfSleeve] = useState("");
-  const [sfCollar, setSfCollar] = useState("");
-
-  // Blazer parameters
-  const [bLength, setBLength] = useState("");
-  const [bChest, setBChest] = useState("");
-  const [bWaist, setBWaist] = useState("");
-  const [bSeat, setBSeat] = useState("");
-  const [bShoulder, setBShoulder] = useState("");
-  const [bSleeve, setBSleeve] = useState("");
-  const [bLapel, setBLapel] = useState("");
-  const [bAcrossBack, setBAcrossBack] = useState("");
-
-  // Sherwani parameters
-  const [shLength, setShLength] = useState("");
-  const [shChest, setShChest] = useState("");
-  const [shWaist, setShWaist] = useState("");
-  const [shSeat, setShSeat] = useState("");
-  const [shShoulder, setShShoulder] = useState("");
-  const [shSleeve, setShSleeve] = useState("");
-  const [shCollar, setShCollar] = useState("");
-
-  // Jacket parameters
-  const [jLength, setJLength] = useState("");
-  const [jChest, setJChest] = useState("");
-  const [jWaist, setJWaist] = useState("");
-  const [jSeat, setJSeat] = useState("");
-  const [jShoulder, setJShoulder] = useState("");
-  const [jSleeve, setJSleeve] = useState("");
+  // Dynamic values record: categoryId -> fieldLabel -> value
+  const [measurementValues, setMeasurementValues] = useState<Record<string, Record<string, string>>>({});
 
   // Flexible dropdown item billing rows
   interface BookingRow {
-    garment: string; // SHIRT, PANT, etc.
+    garment: string; // चुडीदार, ब्लाऊज, आम्ब्रेला, शाळेचा युनिफॉर्म, इतर
     qty: number;
     rate: number;
   }
-  const [billingRows, setBillingRows] = useState<BookingRow[]>([
-    { garment: "SHIRT", qty: 0, rate: 500 }
+  const [billingRows, setBillingRows] = useState<BookingRow[]>(() => [
+    { garment: "ब्लाऊज (Blouse)", qty: 0, rate: 0 }
   ]);
 
   // Edit Customer Demographics state
@@ -351,8 +294,9 @@ export default function App() {
   const [editAddress, setEditAddress] = useState("");
 
   // Active tab inside CRM Workspace
-  const [crmMeasurementCategory, setCrmMeasurementCategory] = useState<keyof GarmentMeasurements>("shirt");
+  const [crmMeasurementCategory, setCrmMeasurementCategory] = useState<string>("blouse");
 
+  // Autofill if mobile number matches
   // Autofill if mobile number matches
   useEffect(() => {
     if (custPhone.length >= 10) {
@@ -362,85 +306,19 @@ export default function App() {
         setCustName(match.name);
         setCustAddress(match.address);
         setCustEmail(match.email);
-        
-        // Load measurements
-        setSLength(match.measurements.shirt.length || "");
-        setSChest(match.measurements.shirt.chest || "");
-        setSWaist(match.measurements.shirt.waist || "");
-        setSSeat(match.measurements.shirt.seat || "");
-        setSShoulder(match.measurements.shirt.shoulder || "");
-        setSSleeve(match.measurements.shirt.sleeve || "");
-        setSCollar(match.measurements.shirt.collar || "");
-        setSCuff(match.measurements.shirt.cuff || "");
-        setSPocket(match.measurements.shirt.pocket);
-        setSManela(match.measurements.shirt.manela);
-        setSApple(match.measurements.shirt.apple);
-        setSSideCut(match.measurements.shirt.sideCut);
 
-        setPLength(match.measurements.pant.length || "");
-        setPWaist(match.measurements.pant.waist || "");
-        setPSeat(match.measurements.pant.seat || "");
-        setPKnee(match.measurements.pant.knee || "");
-        setPBottom(match.measurements.pant.bottom || "");
-        setPThigh(match.measurements.pant.thigh || "");
-        setPInseam(match.measurements.pant.inseam || "");
-        setPFront(match.measurements.pant.front || "");
-        setPTight(match.measurements.pant.tight);
-        setPLoose(match.measurements.pant.loose);
+        // Load measurements dynamically
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setMeasurementValues((match.measurements as any) || {});
 
-        setKLength(match.measurements.kurta.length || "");
-        setKChest(match.measurements.kurta.chest || "");
-        setKWaist(match.measurements.kurta.waist || "");
-        setKSeat(match.measurements.kurta.seat || "");
-        setKShoulder(match.measurements.kurta.shoulder || "");
-        setKSleeve(match.measurements.kurta.sleeve || "");
-        setKCollar(match.measurements.kurta.collar || "");
+        // Determine active categories
+        const activeCategories = categories
+          .map(cat => cat.id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter(catId => match.measurements && (match.measurements as any)[catId] && Object.values((match.measurements as any)[catId]).some((v: unknown) => v));
 
-        setSfLength(match.measurements.safari.length || "");
-        setSfChest(match.measurements.safari.chest || "");
-        setSfWaist(match.measurements.safari.waist || "");
-        setSfSeat(match.measurements.safari.seat || "");
-        setSfShoulder(match.measurements.safari.shoulder || "");
-        setSfSleeve(match.measurements.safari.sleeve || "");
-        setSfCollar(match.measurements.safari.collar || "");
-
-        setBLength(match.measurements.blazer.length || "");
-        setBChest(match.measurements.blazer.chest || "");
-        setBWaist(match.measurements.blazer.waist || "");
-        setBSeat(match.measurements.blazer.seat || "");
-        setBShoulder(match.measurements.blazer.shoulder || "");
-        setBSleeve(match.measurements.blazer.sleeve || "");
-        setBLapel(match.measurements.blazer.lapel || "");
-        setBAcrossBack(match.measurements.blazer.acrossBack || "");
-
-        setShLength(match.measurements.sherwani.length || "");
-        setShChest(match.measurements.sherwani.chest || "");
-        setShWaist(match.measurements.sherwani.waist || "");
-        setShSeat(match.measurements.sherwani.seat || "");
-        setShShoulder(match.measurements.sherwani.shoulder || "");
-        setShSleeve(match.measurements.sherwani.sleeve || "");
-        setShCollar(match.measurements.sherwani.collar || "");
-
-        setJLength(match.measurements.jacket.length || "");
-        setJChest(match.measurements.jacket.chest || "");
-        setJWaist(match.measurements.jacket.waist || "");
-        setJSeat(match.measurements.jacket.seat || "");
-        setJShoulder(match.measurements.jacket.shoulder || "");
-        setJSleeve(match.measurements.jacket.sleeve || "");
-
-        // Determine which garments have existing data to display them by default
-        const activeCategories: string[] = [];
-        if (match.measurements.shirt.length || match.measurements.shirt.chest) activeCategories.push("shirt");
-        if (match.measurements.pant.length || match.measurements.pant.waist) activeCategories.push("pant");
-        if (match.measurements.kurta.length || match.measurements.kurta.chest) activeCategories.push("kurta");
-        if (match.measurements.safari.length || match.measurements.safari.chest) activeCategories.push("safari");
-        if (match.measurements.blazer.length || match.measurements.blazer.chest) activeCategories.push("blazer");
-        if (match.measurements.sherwani.length || match.measurements.sherwani.chest) activeCategories.push("sherwani");
-        if (match.measurements.jacket.length || match.measurements.jacket.chest) activeCategories.push("jacket");
-        
-        // If they had absolutely no measurements, default to shirt & pant
         if (activeCategories.length === 0) {
-          setVisibleSpecCategories(["shirt", "pant"]);
+          setVisibleSpecCategories(categories.map(c => c.id));
         } else {
           setVisibleSpecCategories(activeCategories);
         }
@@ -450,26 +328,26 @@ export default function App() {
     } else {
       setIsExistingClient(false);
     }
-  }, [custPhone, customers]);
+  }, [custPhone, customers, categories]);
 
   // Set booking timestamp upon opening form
   const handleOpenAddForm = () => {
     const now = new Date();
     setBookingDate(now.toLocaleString("en-GB"));
-    setVisibleSpecCategories(["shirt", "pant"]);
+    setVisibleSpecCategories(categories.map(c => c.id));
     setShowAddCustomerModal(true);
   };
 
   // Checkbox toggle handler
   const handleSpecCheckboxToggle = (cat: string) => {
-    setVisibleSpecCategories(prev => 
+    setVisibleSpecCategories(prev =>
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
     );
   };
 
   // Add a billing row
   const addBillingRow = () => {
-    setBillingRows(prev => [...prev, { garment: "SHIRT", qty: 0, rate: 500 }]);
+    setBillingRows(prev => [...prev, { garment: "ब्लाऊज (Blouse)", qty: 0, rate: 0 }]);
   };
 
   // Remove a billing row
@@ -484,14 +362,7 @@ export default function App() {
         if (i === index) {
           const updated = { ...row, [key]: value };
           if (key === "garment") {
-            // Autofill standard rates
-            updated.rate = 
-              value === "SHIRT" ? 500 :
-              value === "PANT" ? 600 :
-              value === "KURTA" ? 800 :
-              value === "SAFARI" ? 1200 :
-              value === "JACKET" ? 1500 :
-              value === "BLAZER" ? 2500 : 8000;
+            updated.rate = 0;
           }
           return updated;
         }
@@ -501,9 +372,9 @@ export default function App() {
       // Auto-append if the edited row is the last row, and has a qty > 0 or has changed garment selection
       const isLastRow = index === prev.length - 1;
       const isFilled = (key === "qty" && Number(value) > 0) || (key === "rate" && Number(value) > 0);
-      
+
       if (isLastRow && isFilled) {
-        return [...updatedList, { garment: "SHIRT", qty: 0, rate: 500 }];
+        return [...updatedList, { garment: "ब्लाऊज (Blouse)", qty: 0, rate: 0 }];
       }
 
       return updatedList;
@@ -516,7 +387,7 @@ export default function App() {
     if (!custName || !custPhone) return;
 
     let targetClientId = "";
-    
+
     // Check if client is new or existing
     const match = customers.find(c => c.phone.replace(/\D/g, "") === custPhone.replace(/\D/g, ""));
     if (match) {
@@ -526,15 +397,7 @@ export default function App() {
         if (c.id === match.id) {
           return {
             ...c,
-            measurements: {
-              shirt: { length: sLength || "0", chest: sChest || "0", waist: sWaist || "0", seat: sSeat || "0", shoulder: sShoulder || "0", sleeve: sSleeve || "0", collar: sCollar || "0", cuff: sCuff || "0", pocket: sPocket, manela: sManela, apple: sApple, sideCut: sSideCut },
-              pant: { length: pLength || "0", waist: pWaist || "0", seat: pSeat || "0", knee: pKnee || "0", bottom: pBottom || "0", thigh: pThigh || "0", inseam: pInseam || "0", front: pFront || "0", tight: pTight, loose: pLoose },
-              kurta: { length: kLength || "0", chest: kChest || "0", waist: kWaist || "0", seat: kSeat || "0", shoulder: kShoulder || "0", sleeve: kSleeve || "0", collar: kCollar || "0" },
-              safari: { length: sfLength || "0", chest: sfChest || "0", waist: sfWaist || "0", seat: sfSeat || "0", shoulder: sfShoulder || "0", sleeve: sfSleeve || "0", collar: sfCollar || "0" },
-              blazer: { length: bLength || "0", chest: bChest || "0", waist: bWaist || "0", seat: bSeat || "0", shoulder: bShoulder || "0", sleeve: bSleeve || "0", lapel: bLapel || "0", acrossBack: bAcrossBack || "0" },
-              sherwani: { length: shLength || "0", chest: shChest || "0", waist: shWaist || "0", seat: shSeat || "0", shoulder: shShoulder || "0", sleeve: shSleeve || "0", collar: shCollar || "0" },
-              jacket: { length: jLength || "0", chest: jChest || "0", waist: jWaist || "0", seat: jSeat || "0", shoulder: jShoulder || "0", sleeve: jSleeve || "0" }
-            }
+            measurements: measurementValues
           };
         }
         return c;
@@ -548,38 +411,18 @@ export default function App() {
         phone: custPhone,
         email: custEmail || `${custName.toLowerCase().replace(/\s/g, "")}@gmail.com`,
         address: custAddress || "Local",
-        measurements: {
-          shirt: { length: sLength || "0", chest: sChest || "0", waist: sWaist || "0", seat: sSeat || "0", shoulder: sShoulder || "0", sleeve: sSleeve || "0", collar: sCollar || "0", cuff: sCuff || "0", pocket: sPocket, manela: sManela, apple: sApple, sideCut: sSideCut },
-          pant: { length: pLength || "0", waist: pWaist || "0", seat: pSeat || "0", knee: pKnee || "0", bottom: pBottom || "0", thigh: pThigh || "0", inseam: pInseam || "0", front: pFront || "0", tight: pTight, loose: pLoose },
-          kurta: { length: kLength || "0", chest: kChest || "0", waist: kWaist || "0", seat: kSeat || "0", shoulder: kShoulder || "0", sleeve: kSleeve || "0", collar: kCollar || "0" },
-          safari: { length: sfLength || "0", chest: sfChest || "0", waist: sfWaist || "0", seat: sfSeat || "0", shoulder: sfShoulder || "0", sleeve: sfSleeve || "0", collar: sfCollar || "0" },
-          blazer: { length: bLength || "0", chest: bChest || "0", waist: bWaist || "0", seat: bSeat || "0", shoulder: bShoulder || "0", sleeve: bSleeve || "0", lapel: bLapel || "0", acrossBack: bAcrossBack || "0" },
-          sherwani: { length: shLength || "0", chest: shChest || "0", waist: shWaist || "0", seat: shSeat || "0", shoulder: shShoulder || "0", sleeve: shSleeve || "0", collar: shCollar || "0" },
-          jacket: { length: jLength || "0", chest: jChest || "0", waist: jWaist || "0", seat: jSeat || "0", shoulder: jShoulder || "0", sleeve: jSleeve || "0" }
-        }
+        measurements: measurementValues
       };
       setCustomers(prev => [...prev, newCust]);
     }
 
     // Book Order Bill
     const newBillNo = String(orders.length);
-    
-    // Map dynamic billing rows to order items
-    const itemsMap: Record<string, OrderItem> = {
-      SHIRT: { name: "SHIRT", qty: 0, rate: 500 },
-      PANT: { name: "PANT", qty: 0, rate: 600 },
-      KURTA: { name: "KURTA", qty: 0, rate: 800 },
-      SAFARI: { name: "SAFARI", qty: 0, rate: 1200 },
-      JACKET: { name: "JACKET", qty: 0, rate: 1500 },
-      BLAZER: { name: "BLAZER", qty: 0, rate: 2500 },
-      SHERWANI: { name: "SHERWANI", qty: 0, rate: 8000 }
-    };
-    billingRows.forEach(row => {
-      if (itemsMap[row.garment]) {
-        itemsMap[row.garment].qty += row.qty;
-        itemsMap[row.garment].rate = row.rate;
-      }
-    });
+
+    // Map dynamic billing rows directly
+    const orderItems: OrderItem[] = billingRows
+      .filter(row => row.qty > 0)
+      .map(row => ({ name: row.garment, qty: row.qty, rate: row.rate }));
 
     const newOrder: Order = {
       id: newBillNo,
@@ -588,7 +431,7 @@ export default function App() {
       customerPhone: custPhone,
       bookingDate: bookingDate.split(",")[0] || new Date().toISOString().split('T')[0],
       deliveryDate: deliveryDate,
-      items: Object.values(itemsMap).filter(item => item.qty > 0),
+      items: orderItems,
       status: "Draft",
       notes: "A5 Form Booking"
     };
@@ -606,7 +449,7 @@ export default function App() {
         time,
         type: "SMS",
         recipient: custName,
-        message: `MATCHWEL: Bill #${newBillNo} booked successfully for ₹${calculateTotal(newOrder)}. Delivery: ${deliveryDate}.`,
+        message: `लकी लेडिज टेलर्स: Bill #${newBillNo} booked successfully for ₹${calculateTotal(newOrder)}. Delivery: ${deliveryDate}.`,
         status: "Sent"
       },
       ...log
@@ -620,14 +463,8 @@ export default function App() {
 
     // Reset Form Fields
     setCustName(""); setCustPhone(""); setCustAddress(""); setCustEmail("");
-    setSLength(""); setSChest(""); setSWaist(""); setSSeat(""); setSShoulder(""); setSSleeve(""); setSCollar(""); setSCuff("");
-    setPLength(""); setPWaist(""); setPSeat(""); setPKnee(""); setPBottom(""); setPThigh(""); setPInseam(""); setPFront("");
-    setKLength(""); setKChest(""); setKWaist(""); setKSeat(""); setKShoulder(""); setKSleeve(""); setKCollar("");
-    setSfLength(""); setSfChest(""); setSfWaist(""); setSfSeat(""); setSfShoulder(""); setSfSleeve(""); setSfCollar("");
-    setBLength(""); setBChest(""); setBWaist(""); setBSeat(""); setBShoulder(""); setBSleeve(""); setBLapel(""); setBAcrossBack("");
-    setShLength(""); setShChest(""); setShWaist(""); setShSeat(""); setShShoulder(""); setShSleeve(""); setShCollar("");
-    setJLength(""); setJChest(""); setJWaist(""); setJSeat(""); setJShoulder(""); setJSleeve("");
-    setBillingRows([{ garment: "SHIRT", qty: 0, rate: 500 }]);
+    setMeasurementValues({});
+    setBillingRows([{ garment: "ब्लाऊज (Blouse)", qty: 0, rate: 0 }]);
     setIsExistingClient(false);
   };
 
@@ -642,7 +479,7 @@ export default function App() {
             time,
             type: "WhatsApp",
             recipient: o.customerName,
-            message: `Update: Delivery date for MATCHWEL order Bill No #${o.id} is rescheduled to ${newDate}.`,
+            message: `Update: Delivery date for LUCKY LADIES order Bill No #${o.id} is rescheduled to ${newDate}.`,
             status: "Sent"
           },
           ...log
@@ -679,16 +516,19 @@ export default function App() {
     setIsEditingDemographics(true);
   };
 
+
   // Handle crm measurement updates
-  const handleCrmMeasurementFieldChange = (field: string, value: string | boolean) => {
+  const handleCrmMeasurementFieldChange = (field: string, value: string) => {
     setCustomers(prev => prev.map(c => {
       if (c.id === selectedCustomerId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const catMeas = (c.measurements as any)[crmMeasurementCategory] || {};
         return {
           ...c,
           measurements: {
             ...c.measurements,
             [crmMeasurementCategory]: {
-              ...c.measurements[crmMeasurementCategory],
+              ...catMeas,
               [field]: value
             }
           }
@@ -716,7 +556,7 @@ export default function App() {
             time,
             type: "WhatsApp",
             recipient: o.customerName,
-            message: `MATCHWEL TAILORS: Status of your order #${o.id} is now updated to: ${status.toUpperCase()}.`,
+            message: `LUCKY LADIES TAILORS: Status of your order #${o.id} is now updated to: ${status.toUpperCase()}.`,
             status: "Sent"
           },
           ...log
@@ -737,8 +577,8 @@ export default function App() {
   };
 
   // Filter client list
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredCustomers = customers.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone.includes(searchQuery)
   );
 
@@ -751,18 +591,18 @@ export default function App() {
   // Filter orders for the pipeline
   const filteredPipelineOrders = orders.filter(o => {
     const statusMatches = ordersPipelineFilter === "All" || o.status === ordersPipelineFilter;
-    const searchMatches = searchQuery === "" || 
-      o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      o.customerPhone.includes(searchQuery) || 
+    const searchMatches = searchQuery === "" ||
+      o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.customerPhone.includes(searchQuery) ||
       o.id.includes(searchQuery);
     return statusMatches && searchMatches;
   });
 
   // Filter invoices list by search query (bill no or customer name/phone)
   const filteredInvoiceOrders = orders.filter(o => {
-    return invoiceSearchQuery === "" || 
-      o.customerName.toLowerCase().includes(invoiceSearchQuery.toLowerCase()) || 
-      o.customerPhone.includes(invoiceSearchQuery) || 
+    return invoiceSearchQuery === "" ||
+      o.customerName.toLowerCase().includes(invoiceSearchQuery.toLowerCase()) ||
+      o.customerPhone.includes(invoiceSearchQuery) ||
       o.id.includes(invoiceSearchQuery);
   });
 
@@ -771,119 +611,170 @@ export default function App() {
       {/* Dedicated print-only container bypasses the complex layout wrappers */}
       {selectedInvoiceOrder && (
         <div className="print-only-container">
-          <div className="paper-invoice">
-            {/* Header */}
-            <div className="paper-header">
-              <div className="paper-brand-area">
-                <div className="paper-brand-main">Custom Tailoring</div>
-                <div className="paper-brand-sub">MATCHWEL TAILORS</div>
+          <div className="lucky-receipt-container">
+            {/* 1. TOP MEASUREMENT SHEETS */}
+            <div className="lucky-receipt-measurements">
+              {/* Blouse Sheet */}
+              <div className="lucky-receipt-sheet-box">
+                <div className="lucky-receipt-sheet-header">
+                  <span>टॉप / ब्लाऊज :</span>
+                  <span className="lucky-receipt-no">No. <span style={{ color: "#d32f2f", fontWeight: "bold" }}>{selectedInvoiceOrder.id}</span></span>
+                </div>
+                <table className="lucky-receipt-sheet-table">
+                  <thead>
+                    <tr>
+                      <th>उंची</th>
+                      <th>शोल्डर</th>
+                      <th>छाती</th>
+                      <th>कंबर</th>
+                      <th>शिट</th>
+                      <th>बाही</th>
+                      <th>पु. गळा</th>
+                      <th>मा. गळा</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["1. उंची"] || (invoiceCustomer.measurements["blouse"] || {})["उंची"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["2. शोल्डर"] || (invoiceCustomer.measurements["blouse"] || {})["शोल्डर"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["3. छाती"] || (invoiceCustomer.measurements["blouse"] || {})["छाती"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["4. कंबर"] || (invoiceCustomer.measurements["blouse"] || {})["कंबर"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["5. शिट"] || (invoiceCustomer.measurements["blouse"] || {})["शिट"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["6. बाही"] || (invoiceCustomer.measurements["blouse"] || {})["बाही"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["7. पु. गळा"] || (invoiceCustomer.measurements["blouse"] || {})["पु. गळा"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["blouse"] || {})["8. मा. गळा"] || (invoiceCustomer.measurements["blouse"] || {})["मा. गळा"] || "\u00A0"}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div className="paper-master-box">
-                <div className="paper-master-title">MASTER</div>
-                <div className="paper-master-phone">7028331155</div>
-              </div>
-              <div className="paper-bill-no-box">
-                <div className="paper-bill-title">Bill No.:</div>
-                <div className="paper-bill-no">{selectedInvoiceOrder.id}</div>
+
+              {/* Pant Sheet */}
+              <div className="lucky-receipt-sheet-box" style={{ marginTop: "8px" }}>
+                <div className="lucky-receipt-sheet-header">
+                  <span>पॅंट :</span>
+                  <span className="lucky-receipt-no">No. <span style={{ color: "#d32f2f", fontWeight: "bold" }}>{selectedInvoiceOrder.id}</span></span>
+                </div>
+                <table className="lucky-receipt-sheet-table">
+                  <thead>
+                    <tr>
+                      <th>उंची</th>
+                      <th>कंबर</th>
+                      <th>हिट</th>
+                      <th>मांडी</th>
+                      <th>गुडघा</th>
+                      <th>बॉटम</th>
+                      <th>अंदर लाईन</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["1. उंची"] || (invoiceCustomer.measurements["pant"] || {})["उंची"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["2. कंबर"] || (invoiceCustomer.measurements["pant"] || {})["कंबर"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["3. हिट"] || (invoiceCustomer.measurements["pant"] || {})["हिट"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["4. मांडी"] || (invoiceCustomer.measurements["pant"] || {})["मांडी"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["5. गुडघा"] || (invoiceCustomer.measurements["pant"] || {})["गुडघा"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["6. बॉटम"] || (invoiceCustomer.measurements["pant"] || {})["बॉटम"] || "\u00A0"}</td>
+                      <td>{(invoiceCustomer.measurements["pant"] || {})["7. अंदर लाईन"] || (invoiceCustomer.measurements["pant"] || {})["अंदर लाईन"] || "\u00A0"}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Meta info */}
-            <div className="paper-meta-row">
-              <div className="paper-meta-item">
-                <span className="label">Cust. Name:</span>
-                <span className="value">{selectedInvoiceOrder.customerName}</span>
+            {/* Dotted divider */}
+            <div className="lucky-receipt-divider"></div>
+
+            {/* 2. LOGO & BRAND DETAILS */}
+            <div className="lucky-receipt-branding">
+              <div className="lucky-receipt-logo-side">
+                <svg width="45" height="55" viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M60,10 C62,10 63,12 63,14 C63,16 62,18 60,18 C58,18 57,16 57,14 C57,12 58,10 60,10 Z" stroke="#8c1c2b" strokeWidth="3" fill="none" />
+                  <path d="M52,18 C56,22 64,22 68,18" stroke="#8c1c2b" strokeWidth="2.5" fill="none" />
+                  <path d="M50,22 L70,22 L65,35 L55,35 Z" fill="#8c1c2b" opacity="0.3" />
+                  <path d="M55,35 L35,80 C32,95 25,120 20,135 C35,145 60,150 60,150 C60,150 85,145 100,135 C95,120 88,95 85,80 L65,35" fill="none" stroke="#8c1c2b" strokeWidth="3.5" />
+                  <path d="M35,80 C45,95 55,90 60,105 C65,90 75,95 85,80" stroke="#8c1c2b" strokeWidth="2" strokeDasharray="3 3" />
+                  <path d="M28,110 C40,125 60,120 60,135 C60,120 80,125 92,110" stroke="#8c1c2b" strokeWidth="2" strokeDasharray="3 3" />
+                </svg>
               </div>
-              <div className="paper-meta-item">
-                <span className="label">Mob. No.:</span>
-                <span className="value">{selectedInvoiceOrder.customerPhone}</span>
-              </div>
-              <div className="paper-meta-item">
-                <span className="label">Date:</span>
-                <span className="value">{selectedInvoiceOrder.bookingDate}</span>
-              </div>
-              <div className="paper-meta-item">
-                <span className="label">Delivery Date:</span>
-                <span className="value" style={{ fontWeight: 800 }}>{selectedInvoiceOrder.deliveryDate}</span>
+              <div className="lucky-receipt-text-side">
+                <div className="lucky-receipt-main-title">
+                  <span className="brand-main" style={{ color: "#8c1c2b" }}>लकी</span>
+                  <span className="brand-sub-badge" style={{ color: "#8c1c2b", borderColor: "#8c1c2b" }}>लेडिज टेलर्स</span>
+                </div>
+                <div className="lucky-receipt-address">
+                  १३ वी गल्ली, जय विजय शाळेजवळ, रणवीर चौक, जयसिंगपूर. मोबा. : 9860980386
+                </div>
               </div>
             </div>
 
-            {/* Items */}
-            <table className="paper-table">
+            <div className="lucky-receipt-meta-row">
+              <div className="meta-col">
+                <strong>बिल नं. :</strong> <span className="meta-val">{selectedInvoiceOrder.id}</span>
+              </div>
+              <div className="meta-col" style={{ textAlign: "right" }}>
+                <strong>दिनांक :</strong> <span className="meta-val">{selectedInvoiceOrder.bookingDate}</span>
+              </div>
+            </div>
+
+            <div className="lucky-receipt-name-row">
+              <strong>नांव :</strong> <span className="meta-val-name">{selectedInvoiceOrder.customerName}</span>
+            </div>
+
+            {/* 3. STITCHING BILL TABLE */}
+            <table className="lucky-receipt-bill-table">
               <thead>
                 <tr>
-                  <th style={{ width: "50px", textAlign: "center" }}>No.</th>
-                  <th>Description</th>
-                  <th style={{ width: "80px", textAlign: "center" }}>Qty.</th>
-                  <th style={{ width: "100px", textAlign: "right" }}>Rate (₹)</th>
-                  <th style={{ width: "120px", textAlign: "right" }}>Amount (₹)</th>
+                  <th style={{ width: "65%" }}>तपशील</th>
+                  <th style={{ width: "15%", textAlign: "center" }}>नग</th>
+                  <th style={{ width: "20%", textAlign: "right" }}>रुपये</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedInvoiceOrder.items.map((item, index) => (
-                  <tr key={item.name}>
-                    <td style={{ textAlign: "center" }}>{index + 1}</td>
-                    <td style={{ fontWeight: "700" }}>{item.name}</td>
-                    <td style={{ textAlign: "center" }}>{item.qty}</td>
-                    <td style={{ textAlign: "right" }}>{item.rate}</td>
-                    <td style={{ textAlign: "right", fontWeight: "700" }}>₹{item.qty * item.rate}</td>
-                  </tr>
-                ))}
-                <tr className="total-row">
-                  <td colSpan={4} style={{ textAlign: "right", fontWeight: "800" }}>Total Amount -</td>
-                  <td style={{ textAlign: "right", fontWeight: "800" }}>₹{calculateTotal(selectedInvoiceOrder)}</td>
+                {Array.from({ length: Math.max(5, selectedInvoiceOrder.items.length) }).map((_, idx) => {
+                  const item = selectedInvoiceOrder.items[idx];
+                  return (
+                    <tr key={idx}>
+                      <td>{item ? item.name : "\u00A0"}</td>
+                      <td style={{ textAlign: "center" }}>{item ? item.qty : "\u00A0"}</td>
+                      <td style={{ textAlign: "right", fontWeight: item ? "bold" : "normal" }}>
+                        {item ? `₹${item.qty * item.rate}` : "\u00A0"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr className="lucky-receipt-calc-row">
+                  <td colSpan={2} className="calc-label">एकूण (Total)</td>
+                  <td className="calc-val">₹{calculateTotal(selectedInvoiceOrder)}</td>
+                </tr>
+                <tr className="lucky-receipt-calc-row">
+                  <td colSpan={2} className="calc-label">ॲडव्हान्स (Advance)</td>
+                  <td className="calc-val">₹0</td>
+                </tr>
+                <tr className="lucky-receipt-calc-row">
+                  <td colSpan={2} className="calc-label">येणे (Balance)</td>
+                  <td className="calc-val">₹{calculateTotal(selectedInvoiceOrder)}</td>
                 </tr>
               </tbody>
             </table>
 
-            <div style={{ display: "flex", justifyContent: "space-between", margin: "0.5rem 0", fontSize: "0.85rem", fontWeight: "700" }}>
-              <div>Working Hours: 10 a.m. To 8 p.m.</div>
-              <div style={{ borderTop: "1px solid #000", width: "150px", textAlign: "center", marginTop: "1rem" }}>Sign.</div>
+            {/* Delivery Date */}
+            <div className="lucky-receipt-delivery-date">
+              <strong>डिलिव्हरी दि.</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / <strong>२०</strong>&nbsp;&nbsp;
+              <span style={{ fontSize: "0.85rem", color: "#8c1c2b", fontWeight: "bold" }}>
+                ({selectedInvoiceOrder.deliveryDate.split("-").reverse().join("/")})
+              </span>
             </div>
 
-            {/* Print measurements */}
-            <div className="paper-measurements-section">
-              <div className="paper-measure-box">
-                <div className="paper-measure-title">
-                  <span>PANT (पैंट) MEASUREMENTS</span>
-                  <span style={{ fontSize: "0.75rem", fontStyle: "italic" }}>
-                    Fit: {invoiceCustomer.measurements.pant.tight ? "फिट (Tight) ✓ " : ""}{invoiceCustomer.measurements.pant.loose ? "लूस (Loose) ✓" : ""}
-                  </span>
-                </div>
-                <div className="paper-measure-grid">
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">उंची</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.length}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">कंबर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.waist}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">सीट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.seat}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">गुडघा</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.knee}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">बॉटम</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.bottom}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">मांडी</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.thigh}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">अंदर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.inseam}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">फ्रंट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.front}</span></div>
-                </div>
+            {/* 4. FOOTER NOTE & SIGN */}
+            <div className="lucky-receipt-footer">
+              <div className="footer-notes">
+                <p>टीप :- १) कपडे दिलेल्या तारखेपासून १ महिन्याचे आत घेऊन जावे नंतर आमची जबाबदारी राहणार नाही.</p>
+                <p>२) दि. दिलेल्या तारखेच्या नंतर ६ नंतर दिले जाईल.</p>
+                <p style={{ fontWeight: "bold" }}>दर सोमवारी बंद राहील.</p>
               </div>
-
-              <div className="paper-measure-box">
-                <div className="paper-measure-title">
-                  <span>SHIRT (शर्ट) MEASUREMENTS</span>
-                  <span style={{ fontSize: "0.75rem", fontStyle: "italic" }}>
-                    Options: {invoiceCustomer.measurements.shirt.pocket ? "पॉकेट ✓ " : ""}{invoiceCustomer.measurements.shirt.manela ? "मनेला ✓ " : ""}{invoiceCustomer.measurements.shirt.apple ? "ॲपल ✓ " : ""}{invoiceCustomer.measurements.shirt.sideCut ? "साईड कट ✓" : ""}
-                  </span>
-                </div>
-                <div className="paper-measure-grid">
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">उंची</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.length}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">छाती</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.chest}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">पोट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.waist}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">शिट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.seat}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">शोल्डर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.shoulder}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">बाही</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.sleeve}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">कॉलर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.collar}</span></div>
-                  <div className="paper-measure-cell"><span className="paper-measure-cell-label">कफ</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.cuff}</span></div>
-                </div>
+              <div className="footer-prop">
+                <p className="prop-title">प्रोप्रा. मोहसीन दस्तगीर इनामदार</p>
               </div>
-            </div>
-
-            <div style={{ textAlign: "center", fontSize: "0.8rem", color: "#666", marginTop: "1rem", borderTop: "1px dashed #aaa", paddingTop: "0.5rem" }}>
-              Thank You... Visit Again
             </div>
           </div>
         </div>
@@ -893,8 +784,8 @@ export default function App() {
       <div className="app-container">
         <aside className="sidebar">
           <div className="brand-section">
-            <h2 className="brand-name">MATCHWEL</h2>
-            <div className="brand-subtitle">Tailoring Studio</div>
+            <h2 className="brand-name" style={{ fontSize: "1.4rem", letterSpacing: "1px" }}>लकी लेडिज</h2>
+            <div className="brand-subtitle">Lucky Ladies Tailors</div>
           </div>
 
           <nav className="nav-links">
@@ -918,13 +809,9 @@ export default function App() {
               <FileText size={18} />
               <span>Invoices</span>
             </div>
-            <div className={`nav-item ${activeTab === "comms" ? "active" : ""}`} onClick={() => setActiveTab("comms")}>
-              <MessageSquare size={18} />
-              <span>Communications Hub</span>
-            </div>
-            <div className={`nav-item ${activeTab === "backup" ? "active" : ""}`} onClick={() => setActiveTab("backup")}>
-              <Download size={18} />
-              <span>Data Import/Export</span>
+            <div className={`nav-item ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")}>
+              <RefreshCw size={18} />
+              <span>Settings (सेटिंग्ज)</span>
             </div>
           </nav>
 
@@ -949,8 +836,9 @@ export default function App() {
                 {activeTab === "invoices" && "Bespoke Printed Invoice"}
                 {activeTab === "comms" && "Client Alerts Gateways"}
                 {activeTab === "backup" && "System Data Sync Hub (CSV)"}
+                {activeTab === "settings" && "Custom Settings (सेटिंग्ज)"}
               </h1>
-              <p>MATCHWEL CUSTOM TAILORING SYSTEM</p>
+              <p>LUCKY LADIES TAILOR CUSTOM SEWING SYSTEM</p>
             </div>
 
             <button className="btn btn-primary" onClick={handleOpenAddForm}>
@@ -960,53 +848,158 @@ export default function App() {
 
           {/* 1. Dashboard */}
           {activeTab === "dashboard" && (
-            <div>
-              <div className="btn-dashboard-giant" onClick={handleOpenAddForm}>
-                <Users size={40} style={{ color: "var(--color-gold)", strokeWidth: 1.5 }} />
-                <div className="btn-dashboard-giant-title">Book Stitching Order Form</div>
-                <div className="btn-dashboard-giant-desc">
-                  Open the lookup register to search clients by phone number, check previous order histories, enter dynamic measurements, and build invoices.
+            <div className="lucky-landing-container" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+              
+              {/* Brand Hero Welcome Banner */}
+              <div className="glass-card" style={{ display: "grid", gridTemplateColumns: "1fr auto 1.5fr", gap: "2rem", alignItems: "center", padding: "2.5rem" }}>
+                
+                {/* SVG Silhouette Emblem */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  <div className="lucky-logo-wrapper" style={{ animation: "float 6s ease-in-out infinite" }}>
+                    <svg width="130" height="160" viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0px 6px 20px rgba(197, 155, 118, 0.45))" }}>
+                      <path d="M60,10 C62,10 63,12 63,14 C63,16 62,18 60,18 C58,18 57,16 57,14 C57,12 58,10 60,10 Z" stroke="#e5c19d" strokeWidth="2.5" fill="none" />
+                      <path d="M52,18 C56,22 64,22 68,18" stroke="#e5c19d" strokeWidth="2" fill="none" />
+                      <path d="M50,22 L70,22 L65,35 L55,35 Z" fill="#c59b76" opacity="0.3" />
+                      <path d="M55,35 L35,80 C32,95 25,120 20,135 C35,145 60,150 60,150 C60,150 85,145 100,135 C95,120 88,95 85,80 L65,35" fill="url(#goldGradient)" stroke="#e5c19d" strokeWidth="2.5" />
+                      <path d="M35,80 C45,95 55,90 60,105 C65,90 75,95 85,80" stroke="#e5c19d" strokeWidth="1.5" strokeDasharray="3 3" />
+                      <path d="M28,110 C40,125 60,120 60,135 C60,120 80,125 92,110" stroke="#e5c19d" strokeWidth="1.5" strokeDasharray="3 3" />
+                      <defs>
+                        <linearGradient id="goldGradient" x1="60" y1="35" x2="60" y2="150" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#e5c19d" />
+                          <stop offset="50%" stopColor="#c59b76" />
+                          <stop offset="100%" stopColor="#7a583a" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
                 </div>
+
+                {/* Vertical Divider */}
+                <div style={{ width: "1px", height: "80%", background: "rgba(197, 155, 118, 0.15)" }}></div>
+
+                {/* Banner Text Details */}
+                <div>
+                  <h2 className="lucky-hero-title" style={{ fontFamily: "var(--font-serif)", fontSize: "2.4rem", color: "var(--color-gold-bright)", textShadow: "0 0 15px rgba(197, 155, 118, 0.3)", marginBottom: "0.4rem" }}>
+                    लकी लेडिज टेलर्स
+                  </h2>
+                  <p style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--text-primary)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "0.8rem" }}>
+                    Lucky Ladies Tailors & Boutique
+                  </p>
+                  
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                    <p>📍 १३ वी गल्ली, जय विजय शाळेजवळ, रणवीर चौक, जयसिंगपूर.</p>
+                    <p>📞 मोबा. नं. : <strong>9860980386</strong> | <strong>7028331155</strong></p>
+                    <p style={{ marginTop: "0.3rem", color: "var(--color-gold)" }}>💼 प्रोप्रा. <strong>मोहसीन दस्तगीर इनामदार</strong> (Prop. Mohseen Dastagir Inamdar)</p>
+                    <p style={{ display: "inline-block", background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.15rem 0.6rem", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 700, marginTop: "0.5rem" }}>
+                      ⚠️ दर सोमवारी दुकान बंद राहील. (Closed on Mondays)
+                    </p>
+                  </div>
+                </div>
+
               </div>
 
-              <div className="metrics-grid">
+              {/* Main Quick Portal Directory & Shop Notices */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem" }}>
+                
+                {/* Operations quick-launch shortcuts */}
+                <div className="glass-card" style={{ padding: "1.8rem" }}>
+                  <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.2rem", fontSize: "0.9rem" }}>
+                    Operations & Bookings Directory (कार्यप्रणाली दालन)
+                  </h3>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    
+                    <button className="btn btn-primary" onClick={handleOpenAddForm} style={{ flexDirection: "column", height: "110px", justifyContent: "center", gap: "0.5rem", borderRadius: "12px", border: "1px solid var(--border-gold)" }}>
+                      <PlusCircle size={26} />
+                      <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>नवीन बिल बुकिंग फॉर्म</span>
+                      <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>New Stitching Bill</span>
+                    </button>
+
+                    <button className="btn btn-secondary" onClick={() => setActiveTab("orders")} style={{ flexDirection: "column", height: "110px", justifyContent: "center", gap: "0.5rem", borderRadius: "12px" }}>
+                      <Scissors size={26} style={{ color: "var(--color-gold)" }} />
+                      <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>सुरू असणारी कामे</span>
+                      <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>Orders Pipeline</span>
+                    </button>
+
+                    <button className="btn btn-secondary" onClick={() => setActiveTab("crm")} style={{ flexDirection: "column", height: "110px", justifyContent: "center", gap: "0.5rem", borderRadius: "12px" }}>
+                      <Users size={26} style={{ color: "var(--color-gold)" }} />
+                      <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>ग्राहक माप नोंद वही</span>
+                      <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>CRM Fitting Books</span>
+                    </button>
+
+                    <button className="btn btn-secondary" onClick={() => setActiveTab("settings")} style={{ flexDirection: "column", height: "110px", justifyContent: "center", gap: "0.5rem", borderRadius: "12px" }}>
+                      <RefreshCw size={26} style={{ color: "var(--color-gold)" }} />
+                      <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>मोजमाप सेटिंग्ज</span>
+                      <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>Configure Fields</span>
+                    </button>
+
+                  </div>
+                </div>
+
+                {/* Shop Rules & Terms Panel */}
+                <div className="glass-card" style={{ padding: "1.8rem", background: "rgba(20, 10, 15, 0.45)" }}>
+                  <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.2rem", fontSize: "0.9rem" }}>
+                    ग्राहक सेवा नियम व अटी (Shop Terms & Rules)
+                  </h3>
+                  
+                  <ul style={{ fontSize: "0.85rem", color: "var(--text-secondary)", paddingLeft: "1.2rem", display: "flex", flexDirection: "column", gap: "0.8rem", lineHeight: "1.5" }}>
+                    <li>
+                      <strong>१. वेळेची मर्यादा:</strong> कपडे दिलेल्या डिलिव्हरी तारखेपासून <strong>१ महिन्याचे आत</strong> घेऊन जावे, त्यानंतर कोणत्याही नुकसानीस आमची जबाबदारी राहणार नाही.
+                    </li>
+                    <li>
+                      <strong>२. डिलिव्हरी वेळ:</strong> कपडे ठरवून दिलेल्या डिलिव्हरी तारखेच्या दिवशी <strong>संध्याकाळी ६ वाजल्यानंतर</strong> दिले जातील.
+                    </li>
+                    <li>
+                      <strong>३. सुरक्षा नियम:</strong> कपड्यांची सुरक्षा व अचूक मापे लकी टेलर्सच्या रेकॉर्डमध्ये सुरक्षित राहतील.
+                    </li>
+                    <li>
+                      <strong>४. मोजमाप बदल:</strong> काही सुधारणा किंवा बदल हवे असल्यास ट्रायलच्या वेळी मास्टरशी संपर्क साधावा.
+                    </li>
+                  </ul>
+                </div>
+
+              </div>
+
+              {/* Quick metrics section */}
+              <div className="metrics-grid" style={{ marginBottom: 0 }}>
                 <div className="glass-card metric-card">
                   <div className="metric-icon-box"><DollarSign size={24} /></div>
                   <div className="metric-info">
-                    <h3>Pending Billings</h3>
+                    <h3>Pending Billings (बाकी बिल)</h3>
                     <p>₹{orders.reduce((acc, o) => acc + calculateTotal(o), 0)}</p>
                   </div>
                 </div>
                 <div className="glass-card metric-card">
                   <div className="metric-icon-box"><Scissors size={24} /></div>
                   <div className="metric-info">
-                    <h3>Active Orders</h3>
+                    <h3>Active Stitchings (चालू कामे)</h3>
                     <p>{orders.filter(o => o.status !== "Delivered").length}</p>
                   </div>
                 </div>
                 <div className="glass-card metric-card">
                   <div className="metric-icon-box"><Users size={24} /></div>
                   <div className="metric-info">
-                    <h3>Fitting Accounts</h3>
+                    <h3>Total Clients (एकूण ग्राहक)</h3>
                     <p>{customers.length}</p>
                   </div>
                 </div>
               </div>
 
+              {/* Deadlines calendar quick-view list */}
               <div className="glass-card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem", flexWrap: "wrap", gap: "1rem" }}>
                   <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", margin: 0, fontSize: "0.9rem" }}>
-                    Delivery Calendar Deadlines
+                    Delivery calendar Deadlines (डिलिव्हरी वेळापत्रक)
                   </h3>
                   <div style={{ display: "flex", gap: "0.4rem" }}>
-                    <button 
+                    <button
                       className={`btn ${dashboardDeliveryFilter === "today" ? "btn-primary" : "btn-secondary"}`}
                       style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
                       onClick={() => setDashboardDeliveryFilter("today")}
                     >
                       Today's Deliveries
                     </button>
-                    <button 
+                    <button
                       className={`btn ${dashboardDeliveryFilter === "all" ? "btn-primary" : "btn-secondary"}`}
                       style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
                       onClick={() => setDashboardDeliveryFilter("all")}
@@ -1043,8 +1036,8 @@ export default function App() {
                             <span>Delivery: {o.deliveryDate}</span>
                           </div>
 
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             value={o.deliveryDate}
                             style={{
                               background: "var(--bg-secondary)",
@@ -1057,8 +1050,8 @@ export default function App() {
                             onChange={e => updateDeliveryDate(o.id, e.target.value)}
                           />
 
-                          <button 
-                            className="btn btn-secondary" 
+                          <button
+                            className="btn btn-secondary"
                             style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
                             onClick={() => alert(`Resent WhatsApp/SMS alerts to ${o.customerName}!`)}
                           >
@@ -1075,12 +1068,13 @@ export default function App() {
                     }
                     return true;
                   }).length === 0 && (
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", textAlign: "center", padding: "2rem" }}>
-                      No deliveries scheduled for today.
-                    </div>
-                  )}
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", textAlign: "center", padding: "2rem" }}>
+                        No deliveries scheduled for today.
+                      </div>
+                    )}
                 </div>
               </div>
+
             </div>
           )}
 
@@ -1115,11 +1109,11 @@ export default function App() {
               {/* Filtering Controls Bar */}
               <div className="glass-card" style={{ marginBottom: "1.5rem", padding: "1.2rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-                  
+
                   {/* Status Toggle Buttons */}
                   <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                     {(["All", "Draft", "Stitching", "Fitting", "Ready", "Delivered"] as const).map(status => (
-                      <button 
+                      <button
                         key={status}
                         className={`btn ${ordersPipelineFilter === status ? "btn-primary" : "btn-secondary"}`}
                         style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}
@@ -1132,10 +1126,10 @@ export default function App() {
 
                   {/* Text Search Box */}
                   <div style={{ width: "300px" }}>
-                    <input 
-                      type="text" 
-                      className="search-input" 
-                      placeholder="Search orders (name, phone, bill no)..." 
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Search orders (name, phone, bill no)..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                     />
@@ -1194,8 +1188,8 @@ export default function App() {
                           </td>
                           <td style={{ padding: "0.8rem", textAlign: "center" }}>
                             <div style={{ display: "flex", gap: "0.4rem", justifyContent: "center" }}>
-                              <button 
-                                className="btn btn-secondary" 
+                              <button
+                                className="btn btn-secondary"
                                 style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
                                 onClick={() => {
                                   setActiveInvoiceId(o.id);
@@ -1205,15 +1199,15 @@ export default function App() {
                                 View Bill
                               </button>
 
-                              <button 
-                                className="btn btn-primary" 
+                              <button
+                                className="btn btn-primary"
                                 style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
                                 onClick={() => {
                                   const time = new Date().toLocaleTimeString("en-GB");
-                                  const msg = o.status === "Ready" 
-                                    ? `MATCHWEL: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - MATCHWEL TAILORS`
-                                    : `MATCHWEL: Hi ${o.customerName}, status update for order #${o.id} is: ${o.status.toUpperCase()}. Target delivery: ${o.deliveryDate}.`;
-                                  
+                                  const msg = o.status === "Ready"
+                                    ? `LUCKY LADIES: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - LUCKY LADIES TAILORS`
+                                    : `LUCKY LADIES: Hi ${o.customerName}, status update for order #${o.id} is: ${o.status.toUpperCase()}. Target delivery: ${o.deliveryDate}.`;
+
                                   setCommsLog(log => [
                                     {
                                       id: "l" + (log.length + 1),
@@ -1235,15 +1229,15 @@ export default function App() {
                                 WhatsApp Status
                               </button>
 
-                              <button 
-                                className="btn btn-secondary" 
+                              <button
+                                className="btn btn-secondary"
                                 style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", background: "rgba(16,185,129,0.15)", color: "var(--success)" }}
                                 onClick={() => {
                                   const time = new Date().toLocaleTimeString("en-GB");
-                                  const msg = o.status === "Ready" 
-                                    ? `MATCHWEL: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - MATCHWEL TAILORS`
-                                    : `MATCHWEL Alert: Your order #${o.id} status is now ${o.status}. Delivery Date: ${o.deliveryDate}.`;
-                                  
+                                  const msg = o.status === "Ready"
+                                    ? `LUCKY LADIES: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - LUCKY LADIES TAILORS`
+                                    : `LUCKY LADIES Alert: Your order #${o.id} status is now ${o.status}. Delivery Date: ${o.deliveryDate}.`;
+
                                   setCommsLog(log => [
                                     {
                                       id: "l" + (log.length + 1),
@@ -1263,9 +1257,9 @@ export default function App() {
                                 SMS Alert
                               </button>
 
-                              <button 
-                                className="btn btn-danger" 
-                                style={{ padding: "0.3rem" }} 
+                              <button
+                                className="btn btn-danger"
+                                style={{ padding: "0.3rem" }}
                                 onClick={() => handleDeleteOrder(o.id)}
                               >
                                 <Trash2 size={13} />
@@ -1288,11 +1282,11 @@ export default function App() {
           {/* 1c. Bespoke Delivery Calendar Page */}
           {activeTab === "calendar" && (() => {
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            
+
             // Generate monthly grid arrays
             const totalDaysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
             const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
-            
+
             const blankCells = Array.from({ length: firstDayIndex });
             const dayCells = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1);
 
@@ -1343,7 +1337,7 @@ export default function App() {
 
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem", alignItems: "start" }}>
-                
+
                 {/* Left Side: Calendar Grid */}
                 <div className="glass-card" style={{ padding: "1.5rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
@@ -1383,22 +1377,22 @@ export default function App() {
                       const isToday = new Date().toISOString().split("T")[0] === dateStr;
 
                       return (
-                        <div 
+                        <div
                           key={day}
                           onClick={() => setSelectedCalendarDate(dateStr)}
                           style={{
                             minHeight: "65px",
                             padding: "0.4rem",
-                            background: isSelected 
-                              ? "rgba(207,168,81,0.25)" 
-                              : isToday 
-                              ? "rgba(255,255,255,0.08)" 
-                              : "rgba(255,255,255,0.02)",
-                            border: isSelected 
-                              ? "1px solid var(--color-gold)" 
-                              : isToday 
-                              ? "1px dashed var(--border-gold-hover)" 
-                              : "1px solid rgba(255,255,255,0.03)",
+                            background: isSelected
+                              ? "rgba(207,168,81,0.25)"
+                              : isToday
+                                ? "rgba(255,255,255,0.08)"
+                                : "rgba(255,255,255,0.02)",
+                            border: isSelected
+                              ? "1px solid var(--color-gold)"
+                              : isToday
+                                ? "1px dashed var(--border-gold-hover)"
+                                : "1px solid rgba(255,255,255,0.03)",
                             borderRadius: "6px",
                             cursor: "pointer",
                             transition: "all 0.2s ease",
@@ -1409,11 +1403,11 @@ export default function App() {
                         >
                           <span style={{ fontWeight: 700, fontSize: "0.95rem", color: isToday ? "var(--color-gold-bright)" : "white" }}>{day}</span>
                           {dayOrders.length > 0 && (
-                            <span style={{ 
-                              background: "rgba(207,168,81,0.15)", 
-                              color: "var(--color-gold-bright)", 
-                              fontSize: "0.7rem", 
-                              padding: "0.1rem 0.3rem", 
+                            <span style={{
+                              background: "rgba(207,168,81,0.15)",
+                              color: "var(--color-gold-bright)",
+                              fontSize: "0.7rem",
+                              padding: "0.1rem 0.3rem",
                               borderRadius: "4px",
                               fontWeight: 700,
                               textAlign: "center"
@@ -1429,13 +1423,13 @@ export default function App() {
 
                 {/* Right Side: Date Detail & GCal Sync Panel */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                  
+
                   {/* Selected Date Deliveries */}
                   <div className="glass-card" style={{ padding: "1.5rem" }}>
                     <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1rem" }}>
                       Deliveries on {selectedCalendarDate.split("-").reverse().join("/")}
                     </h3>
-                    
+
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
                       {selectedDateOrders.map(o => (
                         <div key={o.id} style={{ padding: "1rem", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px" }}>
@@ -1476,8 +1470,8 @@ export default function App() {
 
                     <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-gold)", borderRadius: "8px", padding: "1rem", marginBottom: "1rem" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.6rem", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem" }}>
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={googleSyncActive}
                           onChange={e => {
                             setGoogleSyncActive(e.target.checked);
@@ -1497,7 +1491,7 @@ export default function App() {
                     </div>
 
                     <div style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "6px", padding: "0.8rem", fontSize: "0.8rem", color: "var(--warning)" }}>
-                      <strong>ℹ GCal Retention Rule:</strong> Past delivery calendar events are automatically pruned from Google Calendar 24h after completion to avoid cluttering your calendar. Local MATCHWEL invoice database remains fully preserved.
+                      <strong>ℹ GCal Retention Rule:</strong> Past delivery calendar events are automatically pruned from Google Calendar 24h after completion to avoid cluttering your calendar. Local LUCKY LADIES invoice database remains fully preserved.
                     </div>
 
                     <div style={{ marginTop: "1rem" }}>
@@ -1523,17 +1517,17 @@ export default function App() {
           {activeTab === "crm" && selectedCustomer && (
             <div className="crm-layout">
               <div className="customer-list-panel">
-                <input 
-                  type="text" 
-                  className="search-input" 
-                  placeholder="Search clients..." 
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search clients..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
                 <div className="customer-list">
                   {filteredCustomers.map(c => (
-                    <div 
-                      key={c.id} 
+                    <div
+                      key={c.id}
                       className={`customer-item ${selectedCustomerId === c.id ? "active" : ""}`}
                       onClick={() => setSelectedCustomerId(c.id)}
                     >
@@ -1566,9 +1560,9 @@ export default function App() {
                           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.2rem" }}><MapPin size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />{selectedCustomer.address}</p>
                           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.8rem" }}>
                             <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => startEditDemographics(selectedCustomer)}>Edit Profile Details</button>
-                            <button 
-                              className="btn btn-danger" 
-                              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} 
+                            <button
+                              className="btn btn-danger"
+                              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
                               onClick={() => {
                                 if (confirm(`Are you sure you want to permanently delete the profile, measurements, and logs for ${selectedCustomer.name}?`)) {
                                   const remaining = customers.filter(c => c.id !== selectedCustomer.id);
@@ -1625,108 +1619,35 @@ export default function App() {
                 <div className="glass-card">
                   <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1rem", fontSize: "0.9rem" }}>Customer Measurements Book</h3>
                   <div className="garment-tabs">
-                    {(["shirt", "pant", "kurta", "safari", "blazer", "sherwani", "jacket"] as const).map(cat => (
-                      <button key={cat} className={`garment-tab ${crmMeasurementCategory === cat ? "active" : ""}`} onClick={() => setCrmMeasurementCategory(cat)} style={{ textTransform: "capitalize" }}>{cat}</button>
+                    {categories.map(cat => (
+                      <button key={cat.id} className={`garment-tab ${crmMeasurementCategory === cat.id ? "active" : ""}`} onClick={() => setCrmMeasurementCategory(cat.id)}>
+                        {cat.title}
+                      </button>
                     ))}
                   </div>
 
                   <div className="paper-form-card">
                     <div className="paper-input-grid">
-                      {crmMeasurementCategory === "shirt" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">उंची</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.chest} onChange={e => handleCrmMeasurementFieldChange("chest", e.target.value)} /><span className="paper-input-label">छाती</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">पोट</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">शिट</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.shoulder} onChange={e => handleCrmMeasurementFieldChange("shoulder", e.target.value)} /><span className="paper-input-label">शोल्डर</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.sleeve} onChange={e => handleCrmMeasurementFieldChange("sleeve", e.target.value)} /><span className="paper-input-label">बाही</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.collar} onChange={e => handleCrmMeasurementFieldChange("collar", e.target.value)} /><span className="paper-input-label">कॉलर</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.shirt.cuff} onChange={e => handleCrmMeasurementFieldChange("cuff", e.target.value)} /><span className="paper-input-label">कफ</span></div>
-                          <div style={{ gridColumn: "1 / -1", display: "flex", gap: "1rem", marginTop: "1rem", color: "#000", fontWeight: 700, fontSize: "0.85rem" }}>
-                            <label><input type="checkbox" checked={selectedCustomer.measurements.shirt.pocket} onChange={e => handleCrmMeasurementFieldChange("pocket", e.target.checked)} /> Pocket</label>
-                            <label><input type="checkbox" checked={selectedCustomer.measurements.shirt.manela} onChange={e => handleCrmMeasurementFieldChange("manela", e.target.checked)} /> Manela</label>
-                            <label><input type="checkbox" checked={selectedCustomer.measurements.shirt.apple} onChange={e => handleCrmMeasurementFieldChange("apple", e.target.checked)} /> Apple</label>
-                            <label><input type="checkbox" checked={selectedCustomer.measurements.shirt.sideCut} onChange={e => handleCrmMeasurementFieldChange("sideCut", e.target.checked)} /> Side Cut</label>
-                          </div>
-                        </>
-                      )}
-
-                      {crmMeasurementCategory === "pant" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">उंची</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">कंबर</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">सीट</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.knee} onChange={e => handleCrmMeasurementFieldChange("knee", e.target.value)} /><span className="paper-input-label">गुडघा</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.bottom} onChange={e => handleCrmMeasurementFieldChange("bottom", e.target.value)} /><span className="paper-input-label">बॉटम</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.thigh} onChange={e => handleCrmMeasurementFieldChange("thigh", e.target.value)} /><span className="paper-input-label">मांडी</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.inseam} onChange={e => handleCrmMeasurementFieldChange("inseam", e.target.value)} /><span className="paper-input-label">अंदर</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.pant.front} onChange={e => handleCrmMeasurementFieldChange("front", e.target.value)} /><span className="paper-input-label">फ्रंट</span></div>
-                          <div style={{ gridColumn: "1 / -1", display: "flex", gap: "1rem", marginTop: "1rem", color: "#000", fontWeight: 700, fontSize: "0.85rem" }}>
-                            <label><input type="checkbox" checked={selectedCustomer.measurements.pant.tight} onChange={e => { handleCrmMeasurementFieldChange("tight", e.target.checked); if (e.target.checked) handleCrmMeasurementFieldChange("loose", false); }} /> Tight Fit</label>
-                            <label><input type="checkbox" checked={selectedCustomer.measurements.pant.loose} onChange={e => { handleCrmMeasurementFieldChange("loose", e.target.checked); if (e.target.checked) handleCrmMeasurementFieldChange("tight", false); }} /> Loose Fit</label>
-                          </div>
-                        </>
-                      )}
-
-                      {crmMeasurementCategory === "kurta" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">Length</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.chest} onChange={e => handleCrmMeasurementFieldChange("chest", e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.shoulder} onChange={e => handleCrmMeasurementFieldChange("shoulder", e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.sleeve} onChange={e => handleCrmMeasurementFieldChange("sleeve", e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                          <div className="paper-input-cell" style={{ gridColumn: "span 2" }}><input type="text" className="paper-input-field" value={selectedCustomer.measurements.kurta.collar} onChange={e => handleCrmMeasurementFieldChange("collar", e.target.value)} /><span className="paper-input-label">Collar</span></div>
-                        </>
-                      )}
-
-                      {crmMeasurementCategory === "safari" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">Length</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.chest} onChange={e => handleCrmMeasurementFieldChange("chest", e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.shoulder} onChange={e => handleCrmMeasurementFieldChange("shoulder", e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.sleeve} onChange={e => handleCrmMeasurementFieldChange("sleeve", e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                          <div className="paper-input-cell" style={{ gridColumn: "span 2" }}><input type="text" className="paper-input-field" value={selectedCustomer.measurements.safari.collar} onChange={e => handleCrmMeasurementFieldChange("collar", e.target.value)} /><span className="paper-input-label">Collar</span></div>
-                        </>
-                      )}
-
-                      {crmMeasurementCategory === "blazer" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">Length</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.chest} onChange={e => handleCrmMeasurementFieldChange("chest", e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.shoulder} onChange={e => handleCrmMeasurementFieldChange("shoulder", e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.sleeve} onChange={e => handleCrmMeasurementFieldChange("sleeve", e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.lapel} onChange={e => handleCrmMeasurementFieldChange("lapel", e.target.value)} /><span className="paper-input-label">Lapel</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.blazer.acrossBack} onChange={e => handleCrmMeasurementFieldChange("acrossBack", e.target.value)} /><span className="paper-input-label">Across Back</span></div>
-                        </>
-                      )}
-
-                      {crmMeasurementCategory === "sherwani" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">Length</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.chest} onChange={e => handleCrmMeasurementFieldChange("chest", e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.shoulder} onChange={e => handleCrmMeasurementFieldChange("shoulder", e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.sleeve} onChange={e => handleCrmMeasurementFieldChange("sleeve", e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                          <div className="paper-input-cell" style={{ gridColumn: "span 2" }}><input type="text" className="paper-input-field" value={selectedCustomer.measurements.sherwani.collar} onChange={e => handleCrmMeasurementFieldChange("collar", e.target.value)} /><span className="paper-input-label">Collar</span></div>
-                        </>
-                      )}
-
-                      {crmMeasurementCategory === "jacket" && (
-                        <>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.jacket.length} onChange={e => handleCrmMeasurementFieldChange("length", e.target.value)} /><span className="paper-input-label">Length</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.jacket.chest} onChange={e => handleCrmMeasurementFieldChange("chest", e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.jacket.waist} onChange={e => handleCrmMeasurementFieldChange("waist", e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.jacket.seat} onChange={e => handleCrmMeasurementFieldChange("seat", e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                          <div className="paper-input-cell"><input type="text" className="paper-input-field" value={selectedCustomer.measurements.jacket.shoulder} onChange={e => handleCrmMeasurementFieldChange("shoulder", e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                          <div className="paper-input-cell" style={{ gridColumn: "span 3" }}><input type="text" className="paper-input-field" value={selectedCustomer.measurements.jacket.sleeve} onChange={e => handleCrmMeasurementFieldChange("sleeve", e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                        </>
-                      )}
+                      {(() => {
+                        const cat = categories.find(c => c.id === crmMeasurementCategory);
+                        if (!cat) return null;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const catMeasurements: Record<string, string> = ((selectedCustomer.measurements as any)[cat.id] || {});
+                        return cat.fields.map(field => {
+                          const label = getFieldLabel(field);
+                          return (
+                            <div className="paper-input-cell" key={label}>
+                              <input
+                                type="text"
+                                className="paper-input-field"
+                                value={catMeasurements[label] || ""}
+                                onChange={e => handleCrmMeasurementFieldChange(label, e.target.value)}
+                              />
+                              <span className="paper-input-label">{label}</span>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
@@ -1739,639 +1660,837 @@ export default function App() {
             </div>
           )}
 
-            {/* 3. Invoices */}
-            {activeTab === "invoices" && (
-              <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.5rem" }}>
-                <div className="glass-card" style={{ padding: "1.2rem" }}>
-                  <h3 className="brand-subtitle" style={{ marginBottom: "0.8rem", color: "var(--color-gold)" }}>Active Bills</h3>
-                  
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search Bill No. or client..."
-                    style={{ marginBottom: "1rem", padding: "0.5rem 0.8rem", fontSize: "0.85rem" }}
-                    value={invoiceSearchQuery}
-                    onChange={e => setInvoiceSearchQuery(e.target.value)}
-                  />
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", maxHeight: "60vh", overflowY: "auto" }}>
-                    {filteredInvoiceOrders.map(o => (
-                      <div 
-                        key={o.id}
-                        style={{
-                          padding: "0.8rem",
-                          borderRadius: "6px",
-                          background: activeInvoiceId === o.id ? "rgba(207,168,81,0.15)" : "rgba(255,255,255,0.02)",
-                          border: `1px solid ${activeInvoiceId === o.id ? "var(--color-gold)" : "rgba(255,255,255,0.05)"}`,
-                          cursor: "pointer"
-                        }}
-                        onClick={() => setActiveInvoiceId(o.id)}
-                      >
-                        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{o.customerName}</div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>Bill No: {o.id} | Total: ₹{calculateTotal(o)}</div>
-                      </div>
-                    ))}
-                    {filteredInvoiceOrders.length === 0 && (
-                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", textAlign: "center", padding: "1rem" }}>
-                        No bills match.
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {/* 3. Invoices */}
+          {activeTab === "invoices" && (
+            <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.5rem" }}>
+              <div className="glass-card" style={{ padding: "1.2rem" }}>
+                <h3 className="brand-subtitle" style={{ marginBottom: "0.8rem", color: "var(--color-gold)" }}>Active Bills</h3>
 
-                <div className="glass-card" style={{ background: "rgba(25,27,38,0.5)" }}>
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.5rem" }}>
-                    <button className="btn btn-primary" onClick={() => window.print()}>
-                      <Download size={16} /> Print MATCHWEL Bill Receipt
-                    </button>
-                  </div>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search Bill No. or client..."
+                  style={{ marginBottom: "1rem", padding: "0.5rem 0.8rem", fontSize: "0.85rem" }}
+                  value={invoiceSearchQuery}
+                  onChange={e => setInvoiceSearchQuery(e.target.value)}
+                />
 
-                  {selectedInvoiceOrder ? (
-                    <div className="paper-invoice">
-                      <div className="paper-header">
-                        <div className="paper-brand-area">
-                          <div className="paper-brand-main">Custom Tailoring</div>
-                          <div className="paper-brand-sub">MATCHWEL TAILORS</div>
-                        </div>
-                        <div className="paper-master-box">
-                          <div className="paper-master-title">MASTER</div>
-                          <div className="paper-master-phone">7028331155</div>
-                        </div>
-                        <div className="paper-bill-no-box">
-                          <div className="paper-bill-title">Bill No.:</div>
-                          <div className="paper-bill-no">{selectedInvoiceOrder.id}</div>
-                        </div>
-                      </div>
-
-                      <div className="paper-meta-row">
-                        <div className="paper-meta-item"><span className="label">Cust. Name:</span><span className="value">{selectedInvoiceOrder.customerName}</span></div>
-                        <div className="paper-meta-item"><span className="label">Mob. No.:</span><span className="value">{selectedInvoiceOrder.customerPhone}</span></div>
-                        <div className="paper-meta-item"><span className="label">Date:</span><span className="value">{selectedInvoiceOrder.bookingDate}</span></div>
-                        <div className="paper-meta-item"><span className="label">Delivery Date:</span><span className="value" style={{ fontWeight: 800 }}>{selectedInvoiceOrder.deliveryDate}</span></div>
-                      </div>
-
-                      <table className="paper-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "50px", textAlign: "center" }}>No.</th>
-                            <th>Description</th>
-                            <th style={{ width: "80px", textAlign: "center" }}>Qty.</th>
-                            <th style={{ width: "100px", textAlign: "right" }}>Rate (₹)</th>
-                            <th style={{ width: "120px", textAlign: "right" }}>Amount (₹)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedInvoiceOrder.items.map((item, index) => (
-                            <tr key={item.name}>
-                              <td style={{ textAlign: "center" }}>{index + 1}</td>
-                              <td style={{ fontWeight: "700" }}>{item.name}</td>
-                              <td style={{ textAlign: "center" }}>{item.qty}</td>
-                              <td style={{ textAlign: "right" }}>{item.rate}</td>
-                              <td style={{ textAlign: "right", fontWeight: "700" }}>₹{item.qty * item.rate}</td>
-                            </tr>
-                          ))}
-                          <tr className="total-row">
-                            <td colSpan={4} style={{ textAlign: "right", fontWeight: "800" }}>Total Amount -</td>
-                            <td style={{ textAlign: "right", fontWeight: "800" }}>₹{calculateTotal(selectedInvoiceOrder)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      <div style={{ display: "flex", justifyContent: "space-between", margin: "0.5rem 0", fontSize: "0.85rem", fontWeight: "700" }}>
-                        <div>Working Hours: 10 a.m. To 8 p.m.</div>
-                        <div style={{ borderTop: "1px solid #000", width: "150px", textAlign: "center", marginTop: "1rem" }}>Sign.</div>
-                      </div>
-
-                      <div className="paper-measurements-section">
-                        <div className="paper-measure-box">
-                          <div className="paper-measure-title">
-                            <span>PANT (पैंट) MEASUREMENTS</span>
-                            <span style={{ fontSize: "0.75rem", fontStyle: "italic" }}>Fit: {invoiceCustomer.measurements.pant.tight ? "फिट ✓ " : ""}{invoiceCustomer.measurements.pant.loose ? "लूस ✓" : ""}</span>
-                          </div>
-                          <div className="paper-measure-grid">
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">उंची</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.length}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">कंबर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.waist}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">सीट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.seat}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">गुडघा</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.knee}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">बॉटम</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.bottom}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">मांडी</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.thigh}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">अंदर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.inseam}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">फ्रंट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.pant.front}</span></div>
-                          </div>
-                        </div>
-
-                        <div className="paper-measure-box">
-                          <div className="paper-measure-title">
-                            <span>SHIRT (शर्ट) MEASUREMENTS</span>
-                            <span style={{ fontSize: "0.75rem", fontStyle: "italic" }}>Options: {invoiceCustomer.measurements.shirt.pocket ? "पॉकेट ✓ " : ""}{invoiceCustomer.measurements.shirt.manela ? "मनेला ✓ " : ""}{invoiceCustomer.measurements.shirt.apple ? "ॲपल ✓ " : ""}{invoiceCustomer.measurements.shirt.sideCut ? "साईड कट ✓" : ""}</span>
-                          </div>
-                          <div className="paper-measure-grid">
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">उंची</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.length}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">छाती</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.chest}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">पोट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.waist}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">शिट</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.seat}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">शोल्डर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.shoulder}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">बाही</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.sleeve}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">कॉलर</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.collar}</span></div>
-                            <div className="paper-measure-cell"><span className="paper-measure-cell-label">कफ</span><span className="paper-measure-cell-value">{invoiceCustomer.measurements.shirt.cuff}</span></div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: "center", fontSize: "0.8rem", color: "#666", marginTop: "1rem", borderTop: "1px dashed #aaa", paddingTop: "0.5rem" }}>Thank You... Visit Again</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", maxHeight: "60vh", overflowY: "auto" }}>
+                  {filteredInvoiceOrders.map(o => (
+                    <div
+                      key={o.id}
+                      style={{
+                        padding: "0.8rem",
+                        borderRadius: "6px",
+                        background: activeInvoiceId === o.id ? "rgba(207,168,81,0.15)" : "rgba(255,255,255,0.02)",
+                        border: `1px solid ${activeInvoiceId === o.id ? "var(--color-gold)" : "rgba(255,255,255,0.05)"}`,
+                        cursor: "pointer"
+                      }}
+                      onClick={() => setActiveInvoiceId(o.id)}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{o.customerName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>Bill No: {o.id} | Total: ₹{calculateTotal(o)}</div>
                     </div>
-                  ) : (
-                    <div style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem" }}>Please select or create an active order billing account.</div>
+                  ))}
+                  {filteredInvoiceOrders.length === 0 && (
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", textAlign: "center", padding: "1rem" }}>
+                      No bills match.
+                    </div>
                   )}
                 </div>
               </div>
-            )}
 
-            {/* 4. Comms */}
-            {activeTab === "comms" && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.5rem" }}>
-                <div className="glass-card">
-                  
-                  {/* Comms Filters Header */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem", flexWrap: "wrap", gap: "1rem" }}>
-                    <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", margin: 0, fontSize: "0.95rem" }}>Dispatch Notification Simulator</h3>
-                    <div style={{ display: "flex", gap: "0.4rem" }}>
-                      <button 
-                        className={`btn ${commsDeliveryFilter === "today" ? "btn-primary" : "btn-secondary"}`}
-                        style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
-                        onClick={() => setCommsDeliveryFilter("today")}
-                      >
-                        Today's Deliveries
-                      </button>
-                      <button 
-                        className={`btn ${commsDeliveryFilter === "all" ? "btn-primary" : "btn-secondary"}`}
-                        style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
-                        onClick={() => setCommsDeliveryFilter("all")}
-                      >
-                        All Deliveries
-                      </button>
+              <div className="glass-card" style={{ background: "rgba(25,27,38,0.5)" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.5rem" }}>
+                  <button className="btn btn-primary" onClick={() => window.print()}>
+                    <Download size={16} /> Print LUCKY LADIES Bill Receipt
+                  </button>
+                </div>
+
+                {selectedInvoiceOrder ? (
+                  <div className="lucky-receipt-container">
+                    {/* 1. TOP MEASUREMENT SHEETS */}
+                    <div className="lucky-receipt-measurements">
+                      {/* Blouse Sheet */}
+                      <div className="lucky-receipt-sheet-box">
+                        <div className="lucky-receipt-sheet-header">
+                          <span>टॉप / ब्लाऊज :</span>
+                          <span className="lucky-receipt-no">No. <span style={{ color: "#d32f2f", fontWeight: "bold" }}>{selectedInvoiceOrder.id}</span></span>
+                        </div>
+                        <table className="lucky-receipt-sheet-table">
+                          <thead>
+                            <tr>
+                              <th>उंची</th>
+                              <th>शोल्डर</th>
+                              <th>छाती</th>
+                              <th>कंबर</th>
+                              <th>शिट</th>
+                              <th>बाही</th>
+                              <th>पु. गळा</th>
+                              <th>मा. गळा</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["1. उंची"] || (invoiceCustomer.measurements["blouse"] || {})["उंची"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["2. शोल्डर"] || (invoiceCustomer.measurements["blouse"] || {})["शोल्डर"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["3. छाती"] || (invoiceCustomer.measurements["blouse"] || {})["छाती"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["4. कंबर"] || (invoiceCustomer.measurements["blouse"] || {})["कंबर"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["5. शिट"] || (invoiceCustomer.measurements["blouse"] || {})["शिट"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["6. बाही"] || (invoiceCustomer.measurements["blouse"] || {})["बाही"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["7. पु. गळा"] || (invoiceCustomer.measurements["blouse"] || {})["पु. गळा"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["blouse"] || {})["8. मा. गळा"] || (invoiceCustomer.measurements["blouse"] || {})["मा. गळा"] || "\u00A0"}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Pant Sheet */}
+                      <div className="lucky-receipt-sheet-box" style={{ marginTop: "8px" }}>
+                        <div className="lucky-receipt-sheet-header">
+                          <span>पॅंट :</span>
+                          <span className="lucky-receipt-no">No. <span style={{ color: "#d32f2f", fontWeight: "bold" }}>{selectedInvoiceOrder.id}</span></span>
+                        </div>
+                        <table className="lucky-receipt-sheet-table">
+                          <thead>
+                            <tr>
+                              <th>उंची</th>
+                              <th>कंबर</th>
+                              <th>हिट</th>
+                              <th>मांडी</th>
+                              <th>गुडघा</th>
+                              <th>बॉटम</th>
+                              <th>अंदर लाईन</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["1. उंची"] || (invoiceCustomer.measurements["pant"] || {})["उंची"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["2. कंबर"] || (invoiceCustomer.measurements["pant"] || {})["कंबर"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["3. हिट"] || (invoiceCustomer.measurements["pant"] || {})["हिट"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["4. मांडी"] || (invoiceCustomer.measurements["pant"] || {})["मांडी"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["5. गुडघा"] || (invoiceCustomer.measurements["pant"] || {})["गुडघा"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["6. बॉटम"] || (invoiceCustomer.measurements["pant"] || {})["बॉटम"] || "\u00A0"}</td>
+                              <td>{(invoiceCustomer.measurements["pant"] || {})["7. अंदर लाईन"] || (invoiceCustomer.measurements["pant"] || {})["अंदर लाईन"] || "\u00A0"}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Dotted divider */}
+                    <div className="lucky-receipt-divider"></div>
+
+                    {/* 2. LOGO & BRAND DETAILS */}
+                    <div className="lucky-receipt-branding">
+                      <div className="lucky-receipt-logo-side">
+                        <svg width="45" height="55" viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M60,10 C62,10 63,12 63,14 C63,16 62,18 60,18 C58,18 57,16 57,14 C57,12 58,10 60,10 Z" stroke="#8c1c2b" strokeWidth="3" fill="none" />
+                          <path d="M52,18 C56,22 64,22 68,18" stroke="#8c1c2b" strokeWidth="2.5" fill="none" />
+                          <path d="M50,22 L70,22 L65,35 L55,35 Z" fill="#8c1c2b" opacity="0.3" />
+                          <path d="M55,35 L35,80 C32,95 25,120 20,135 C35,145 60,150 60,150 C60,150 85,145 100,135 C95,120 88,95 85,80 L65,35" fill="none" stroke="#8c1c2b" strokeWidth="3.5" />
+                          <path d="M35,80 C45,95 55,90 60,105 C65,90 75,95 85,80" stroke="#8c1c2b" strokeWidth="2" strokeDasharray="3 3" />
+                          <path d="M28,110 C40,125 60,120 60,135 C60,120 80,125 92,110" stroke="#8c1c2b" strokeWidth="2" strokeDasharray="3 3" />
+                        </svg>
+                      </div>
+                      <div className="lucky-receipt-text-side">
+                        <div className="lucky-receipt-main-title">
+                          <span className="brand-main" style={{ color: "#8c1c2b" }}>लकी</span>
+                          <span className="brand-sub-badge" style={{ color: "#8c1c2b", borderColor: "#8c1c2b" }}>लेडिज टेलर्स</span>
+                        </div>
+                        <div className="lucky-receipt-address">
+                          १३ वी गल्ली, जय विजय शाळेजवळ, रणवीर चौक, जयसिंगपूर. मोबा. : 9860980386
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="lucky-receipt-meta-row">
+                      <div className="meta-col">
+                        <strong>बिल नं. :</strong> <span className="meta-val">{selectedInvoiceOrder.id}</span>
+                      </div>
+                      <div className="meta-col" style={{ textAlign: "right" }}>
+                        <strong>दिनांक :</strong> <span className="meta-val">{selectedInvoiceOrder.bookingDate}</span>
+                      </div>
+                    </div>
+
+                    <div className="lucky-receipt-name-row">
+                      <strong>नांव :</strong> <span className="meta-val-name">{selectedInvoiceOrder.customerName}</span>
+                    </div>
+
+                    {/* 3. STITCHING BILL TABLE */}
+                    <table className="lucky-receipt-bill-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: "65%" }}>तपशील</th>
+                          <th style={{ width: "15%", textAlign: "center" }}>नग</th>
+                          <th style={{ width: "20%", textAlign: "right" }}>रुपये</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: Math.max(5, selectedInvoiceOrder.items.length) }).map((_, idx) => {
+                          const item = selectedInvoiceOrder.items[idx];
+                          return (
+                            <tr key={idx}>
+                              <td>{item ? item.name : "\u00A0"}</td>
+                              <td style={{ textAlign: "center" }}>{item ? item.qty : "\u00A0"}</td>
+                              <td style={{ textAlign: "right", fontWeight: item ? "bold" : "normal" }}>
+                                {item ? `₹${item.qty * item.rate}` : "\u00A0"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="lucky-receipt-calc-row">
+                          <td colSpan={2} className="calc-label">एकूण (Total)</td>
+                          <td className="calc-val">₹{calculateTotal(selectedInvoiceOrder)}</td>
+                        </tr>
+                        <tr className="lucky-receipt-calc-row">
+                          <td colSpan={2} className="calc-label">ॲडव्हान्स (Advance)</td>
+                          <td className="calc-val">₹0</td>
+                        </tr>
+                        <tr className="lucky-receipt-calc-row">
+                          <td colSpan={2} className="calc-label">येणे (Balance)</td>
+                          <td className="calc-val">₹{calculateTotal(selectedInvoiceOrder)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* Delivery Date */}
+                    <div className="lucky-receipt-delivery-date">
+                      <strong>डिलिव्हरी दि.</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / <strong>२०</strong>&nbsp;&nbsp;
+                      <span style={{ fontSize: "0.85rem", color: "#8c1c2b", fontWeight: "bold" }}>
+                        ({selectedInvoiceOrder.deliveryDate.split("-").reverse().join("/")})
+                      </span>
+                    </div>
+
+                    {/* 4. FOOTER NOTE & SIGN */}
+                    <div className="lucky-receipt-footer">
+                      <div className="footer-notes">
+                        <p>टीप :- १) कपडे दिलेल्या तारखेपासून १ महिन्याचे आत घेऊन जावे नंतर आमची जबाबदारी राहणार नाही.</p>
+                        <p>२) दि. दिलेल्या तारखेच्या नंतर ६ नंतर दिले जाईल.</p>
+                        <p style={{ fontWeight: "bold" }}>दर सोमवारी बंद राहील.</p>
+                      </div>
+                      <div className="footer-prop">
+                        <p className="prop-title">प्रोप्रा. मोहसीन दस्तगीर इनामदार</p>
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem" }}>Please select or create an active order billing account.</div>
+                )}
+              </div>
+            </div>
+          )}
 
-                  {/* Sender Config Input */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem", background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-gold)", borderRadius: "8px", padding: "0.8rem", marginBottom: "1.2rem" }}>
-                    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-gold-bright)" }}>
-                      Sender WhatsApp No:
-                    </span>
-                    <input 
-                      type="text" 
-                      className="search-input" 
-                      style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", width: "160px", margin: 0 }}
-                      value={whatsappSenderNum}
-                      onChange={e => setWhatsappSenderNum(e.target.value)}
-                    />
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                      (Recipient Defaults to Customer Phone Number)
-                    </span>
+          {/* 4. Comms */}
+          {activeTab === "comms" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1.5rem" }}>
+              <div className="glass-card">
+
+                {/* Comms Filters Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem", flexWrap: "wrap", gap: "1rem" }}>
+                  <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", margin: 0, fontSize: "0.95rem" }}>Dispatch Notification Simulator</h3>
+                  <div style={{ display: "flex", gap: "0.4rem" }}>
+                    <button
+                      className={`btn ${commsDeliveryFilter === "today" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+                      onClick={() => setCommsDeliveryFilter("today")}
+                    >
+                      Today's Deliveries
+                    </button>
+                    <button
+                      className={`btn ${commsDeliveryFilter === "all" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+                      onClick={() => setCommsDeliveryFilter("all")}
+                    >
+                      All Deliveries
+                    </button>
                   </div>
+                </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    {orders
-                      .filter(o => {
-                        if (commsDeliveryFilter === "today") {
-                          const todayStr = new Date().toISOString().split("T")[0];
-                          return o.deliveryDate === todayStr;
-                        }
-                        return true;
-                      })
-                      .map(o => (
-                        <div key={o.id} style={{ padding: "1.2rem", borderRadius: "8px", background: "rgba(25, 27, 38, 0.4)", border: "1px solid rgba(212, 175, 55, 0.15)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{o.customerName} (Bill No: {o.id})</div>
-                            <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>Delivery: <span style={{ color: "var(--color-gold-bright)" }}>{o.deliveryDate}</span></div>
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>To: {o.customerPhone}</div>
-                          </div>
-                          <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <button 
-                              className="btn btn-secondary" 
-                              style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }} 
-                              onClick={() => {
-                                const time = new Date().toLocaleTimeString("en-GB");
-                                const msg = `MATCHWEL: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - MATCHWEL TAILORS`;
-                                setCommsLog(log => [{ id: "l" + (log.length + 1), time, type: "WhatsApp", recipient: `${o.customerName} (${o.customerPhone})`, message: msg, status: "Sent" }, ...log]);
-                                
-                                // Open WhatsApp API Web Link
-                                const cleanPhone = o.customerPhone.replace(/\D/g, "");
-                                const wpUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-                                window.open(wpUrl, "_blank");
-                              }}
-                            >
-                              WhatsApp
-                            </button>
-                            <button 
-                              className="btn btn-primary" 
-                              style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }} 
-                              onClick={() => {
-                                const time = new Date().toLocaleTimeString("en-GB");
-                                const msg = `MATCHWEL: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - MATCHWEL TAILORS`;
-                                setCommsLog(log => [{ id: "l" + (log.length + 1), time, type: "SMS", recipient: o.customerName, message: msg, status: "Sent" }, ...log]);
-                                const cleanPhone = o.customerPhone.replace(/\D/g, "");
-                                window.open(`sms:${cleanPhone}?body=${encodeURIComponent(msg)}`, "_blank");
-                                alert(`SMS notification dispatched to ${o.customerPhone}!`);
-                              }}
-                            >
-                              SMS Alert
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                {/* Sender Config Input */}
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-gold)", borderRadius: "8px", padding: "0.8rem", marginBottom: "1.2rem" }}>
+                  <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-gold-bright)" }}>
+                    Sender WhatsApp No:
+                  </span>
+                  <input
+                    type="text"
+                    className="search-input"
+                    style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", width: "160px", margin: 0 }}
+                    value={whatsappSenderNum}
+                    onChange={e => setWhatsappSenderNum(e.target.value)}
+                  />
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    (Recipient Defaults to Customer Phone Number)
+                  </span>
+                </div>
 
-                    {orders.filter(o => {
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {orders
+                    .filter(o => {
                       if (commsDeliveryFilter === "today") {
                         const todayStr = new Date().toISOString().split("T")[0];
                         return o.deliveryDate === todayStr;
                       }
                       return true;
-                    }).length === 0 && (
+                    })
+                    .map(o => (
+                      <div key={o.id} style={{ padding: "1.2rem", borderRadius: "8px", background: "rgba(25, 27, 38, 0.4)", border: "1px solid rgba(212, 175, 55, 0.15)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{o.customerName} (Bill No: {o.id})</div>
+                          <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>Delivery: <span style={{ color: "var(--color-gold-bright)" }}>{o.deliveryDate}</span></div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>To: {o.customerPhone}</div>
+                        </div>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}
+                            onClick={() => {
+                              const time = new Date().toLocaleTimeString("en-GB");
+                              const msg = `LUCKY LADIES: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - LUCKY LADIES TAILORS`;
+                              setCommsLog(log => [{ id: "l" + (log.length + 1), time, type: "WhatsApp", recipient: `${o.customerName} (${o.customerPhone})`, message: msg, status: "Sent" }, ...log]);
+
+                              // Open WhatsApp API Web Link
+                              const cleanPhone = o.customerPhone.replace(/\D/g, "");
+                              const wpUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                              window.open(wpUrl, "_blank");
+                            }}
+                          >
+                            WhatsApp
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}
+                            onClick={() => {
+                              const time = new Date().toLocaleTimeString("en-GB");
+                              const msg = `LUCKY LADIES: Hi ${o.customerName}, your stitching of the ${o.items.map(item => item.name.toLowerCase()).join(" and ")} (Bill No: #${o.id}) is ready! Just pick up from our store. - LUCKY LADIES TAILORS`;
+                              setCommsLog(log => [{ id: "l" + (log.length + 1), time, type: "SMS", recipient: o.customerName, message: msg, status: "Sent" }, ...log]);
+                              const cleanPhone = o.customerPhone.replace(/\D/g, "");
+                              window.open(`sms:${cleanPhone}?body=${encodeURIComponent(msg)}`, "_blank");
+                              alert(`SMS notification dispatched to ${o.customerPhone}!`);
+                            }}
+                          >
+                            SMS Alert
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                  {orders.filter(o => {
+                    if (commsDeliveryFilter === "today") {
+                      const todayStr = new Date().toISOString().split("T")[0];
+                      return o.deliveryDate === todayStr;
+                    }
+                    return true;
+                  }).length === 0 && (
                       <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", textAlign: "center", padding: "2rem" }}>
                         No deliveries match filter criteria.
                       </div>
                     )}
-                  </div>
-                </div>
-
-                <div className="glass-card">
-                  <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.2rem", fontSize: "0.9rem" }}>Gateways Dispatch Logs</h3>
-                  <div className="log-panel">
-                    {commsLog.map(log => (
-                      <div key={log.id} className="log-entry">
-                        <div className="log-time">[{log.time}] {log.type} to {log.recipient}</div>
-                        <div className="log-text">{log.message}</div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
-            )}
 
-            {/* 5. Backup / Sync Data Hub (CSV) */}
-            {activeTab === "backup" && (() => {
-              // CSV Export functions
-              const exportCustomersCSV = () => {
-                let csv = "Name,Phone,Email,Address," +
-                  "Shirt_Length,Shirt_Chest,Shirt_Waist,Shirt_Seat,Shirt_Shoulder,Shirt_Sleeve,Shirt_Collar,Shirt_Cuff,Shirt_Pocket,Shirt_Manela,Shirt_Apple,Shirt_SideCut," +
-                  "Pant_Length,Pant_Waist,Pant_Seat,Pant_Knee,Pant_Bottom,Pant_Thigh,Pant_Inseam,Pant_Front,Pant_Tight,Pant_Loose\n";
-
-                customers.forEach(c => {
-                  const row = [
-                    `"${c.name.replace(/"/g, '""')}"`,
-                    `"${c.phone}"`,
-                    `"${c.email}"`,
-                    `"${c.address.replace(/"/g, '""')}"`,
-                    c.measurements.shirt.length || "0",
-                    c.measurements.shirt.chest || "0",
-                    c.measurements.shirt.waist || "0",
-                    c.measurements.shirt.seat || "0",
-                    c.measurements.shirt.shoulder || "0",
-                    c.measurements.shirt.sleeve || "0",
-                    c.measurements.shirt.collar || "0",
-                    c.measurements.shirt.cuff || "0",
-                    c.measurements.shirt.pocket ? "1" : "0",
-                    c.measurements.shirt.manela ? "1" : "0",
-                    c.measurements.shirt.apple ? "1" : "0",
-                    c.measurements.shirt.sideCut ? "1" : "0",
-                    c.measurements.pant.length || "0",
-                    c.measurements.pant.waist || "0",
-                    c.measurements.pant.seat || "0",
-                    c.measurements.pant.knee || "0",
-                    c.measurements.pant.bottom || "0",
-                    c.measurements.pant.thigh || "0",
-                    c.measurements.pant.inseam || "0",
-                    c.measurements.pant.front || "0",
-                    c.measurements.pant.tight ? "1" : "0",
-                    c.measurements.pant.loose ? "1" : "0"
-                  ];
-                  csv += row.join(",") + "\n";
-                });
-
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `matchwel_customers_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              };
-
-              const exportOrdersCSV = () => {
-                let csv = "Bill_No,Customer_Phone,Customer_Name,Booking_Date,Delivery_Date,Items_List,Status,Notes\n";
-                orders.forEach(o => {
-                  const itemsStr = o.items.map(item => `${item.name}:${item.qty}:${item.rate}`).join("|");
-                  const row = [
-                    o.id,
-                    `"${o.customerPhone}"`,
-                    `"${o.customerName.replace(/"/g, '""')}"`,
-                    o.bookingDate,
-                    o.deliveryDate,
-                    `"${itemsStr}"`,
-                    o.status,
-                    `"${o.notes.replace(/"/g, '""')}"`
-                  ];
-                  csv += row.join(",") + "\n";
-                });
-
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `matchwel_orders_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              };
-
-              // CSV Import Handlers
-              const handleImportCustomers = (e: React.ChangeEvent<HTMLInputElement>) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                  const text = evt.target?.result as string;
-                  if (!text) return;
-
-                  try {
-                    const lines = text.split("\n");
-                    const importedCusts: Customer[] = [];
-                    
-                    for (let i = 1; i < lines.length; i++) {
-                      const line = lines[i].trim();
-                      if (!line) continue;
-
-                      // Parse CSV line handling quotes
-                      const cols: string[] = [];
-                      let current = "";
-                      let inQuotes = false;
-                      for (let j = 0; j < line.length; j++) {
-                        const char = line[j];
-                        if (char === '"') {
-                          inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                          cols.push(current.trim());
-                          current = "";
-                        } else {
-                          current += char;
-                        }
-                      }
-                      cols.push(current.trim());
-
-                      if (cols.length < 4) continue;
-
-                      const [name, phone, email, address] = cols;
-                      const shirtLength = cols[4] || "";
-                      const shirtChest = cols[5] || "";
-                      const shirtWaist = cols[6] || "";
-                      const shirtSeat = cols[7] || "";
-                      const shirtShoulder = cols[8] || "";
-                      const shirtSleeve = cols[9] || "";
-                      const shirtCollar = cols[10] || "";
-                      const shirtCuff = cols[11] || "";
-                      const shirtPocket = cols[12] === "1";
-                      const shirtManela = cols[13] === "1";
-                      const shirtApple = cols[14] === "1";
-                      const shirtSideCut = cols[15] === "1";
-
-                      const pantLength = cols[16] || "";
-                      const pantWaist = cols[17] || "";
-                      const pantSeat = cols[18] || "";
-                      const pantKnee = cols[19] || "";
-                      const pantBottom = cols[20] || "";
-                      const pantThigh = cols[21] || "";
-                      const pantInseam = cols[22] || "";
-                      const pantFront = cols[23] || "";
-                      const pantTight = cols[24] === "1";
-                      const pantLoose = cols[25] === "1";
-
-                      importedCusts.push({
-                        id: "c" + (customers.length + importedCusts.length + 1),
-                        name,
-                        phone,
-                        email,
-                        address,
-                        measurements: {
-                          shirt: { length: shirtLength, chest: shirtChest, waist: shirtWaist, seat: shirtSeat, shoulder: shirtShoulder, sleeve: shirtSleeve, collar: shirtCollar, cuff: shirtCuff, pocket: shirtPocket, manela: shirtManela, apple: shirtApple, sideCut: shirtSideCut },
-                          pant: { length: pantLength, waist: pantWaist, seat: pantSeat, knee: pantKnee, bottom: pantBottom, thigh: pantThigh, inseam: pantInseam, front: pantFront, tight: pantTight, loose: pantLoose },
-                          kurta: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-                          safari: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-                          blazer: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", lapel: "", acrossBack: "" },
-                          sherwani: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "", collar: "" },
-                          jacket: { length: "", chest: "", waist: "", seat: "", shoulder: "", sleeve: "" }
-                        }
-                      });
-                    }
-
-                    if (importedCusts.length > 0) {
-                      setCustomers(prev => {
-                        // Avoid duplicates by phone number
-                        const filteredPrev = prev.filter(c => !importedCusts.some(ic => ic.phone === c.phone));
-                        return [...filteredPrev, ...importedCusts];
-                      });
-                      alert(`Successfully imported ${importedCusts.length} clients!`);
-                    } else {
-                      alert("No valid client rows found in CSV.");
-                    }
-                  } catch (err) {
-                    alert("Failed to parse CSV. Please verify formatting.");
-                  }
-                };
-                reader.readAsText(file);
-              };
-
-              const handleImportOrders = (e: React.ChangeEvent<HTMLInputElement>) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                  const text = evt.target?.result as string;
-                  if (!text) return;
-
-                  try {
-                    const lines = text.split("\n");
-                    const importedOrders: Order[] = [];
-
-                    for (let i = 1; i < lines.length; i++) {
-                      const line = lines[i].trim();
-                      if (!line) continue;
-
-                      // Parse CSV line handling quotes
-                      const cols: string[] = [];
-                      let current = "";
-                      let inQuotes = false;
-                      for (let j = 0; j < line.length; j++) {
-                        const char = line[j];
-                        if (char === '"') {
-                          inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                          cols.push(current.trim());
-                          current = "";
-                        } else {
-                          current += char;
-                        }
-                      }
-                      cols.push(current.trim());
-
-                      if (cols.length < 5) continue;
-
-                      const [billNo, phone, name, booking, delivery, itemsList, status, notes] = cols;
-                      
-                      // Parse items back from format "SHIRT:2:500|PANT:1:600"
-                      const items: OrderItem[] = (itemsList || "").split("|").map(chunk => {
-                        const [itemName, qty, rate] = chunk.split(":");
-                        return {
-                          name: itemName || "SHIRT",
-                          qty: Number(qty) || 0,
-                          rate: Number(rate) || 500
-                        };
-                      }).filter(item => item.qty > 0);
-
-                      importedOrders.push({
-                        id: billNo,
-                        customerId: "imported",
-                        customerName: name,
-                        customerPhone: phone,
-                        bookingDate: booking,
-                        deliveryDate: delivery,
-                        items,
-                        status: (status as Order["status"]) || "Draft",
-                        notes: notes || ""
-                      });
-                    }
-
-                    if (importedOrders.length > 0) {
-                      setOrders(prev => {
-                        // Avoid duplicates by bill no
-                        const filteredPrev = prev.filter(o => !importedOrders.some(io => io.id === o.id));
-                        return [...filteredPrev, ...importedOrders];
-                      });
-                      alert(`Successfully imported ${importedOrders.length} orders!`);
-                    } else {
-                      alert("No valid order rows found in CSV.");
-                    }
-                  } catch (err) {
-                    alert("Failed to parse CSV. Please verify formatting.");
-                  }
-                };
-                reader.readAsText(file);
-              };
-
-              return (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem" }}>
-                  
-                  {/* Left Column: Export Hub */}
-                  <div className="glass-card" style={{ padding: "2rem" }}>
-                    <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.5rem", fontSize: "1rem" }}>
-                      Backup Data Export (CSV)
-                    </h3>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: "1.5" }}>
-                      Export all custom measurements, customer contact folders, and order delivery calendar histories into standard CSV files. You can save these files on a USB drive to migrate system states to a new computer easily.
-                    </p>
-                    
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                      <button className="btn btn-primary" style={{ justifyContent: "center", width: "100%", padding: "1rem" }} onClick={exportCustomersCSV}>
-                        Export Customers & Measurements Book
-                      </button>
-                      <button className="btn btn-secondary" style={{ justifyContent: "center", width: "100%", padding: "1rem" }} onClick={exportOrdersCSV}>
-                        Export Stitching Orders & Billing History
-                      </button>
+              <div className="glass-card">
+                <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.2rem", fontSize: "0.9rem" }}>Gateways Dispatch Logs</h3>
+                <div className="log-panel">
+                  {commsLog.map(log => (
+                    <div key={log.id} className="log-entry">
+                      <div className="log-time">[{log.time}] {log.type} to {log.recipient}</div>
+                      <div className="log-text">{log.message}</div>
                     </div>
-                  </div>
-
-                  {/* Right Column: Import Hub */}
-                  <div className="glass-card" style={{ padding: "2rem" }}>
-                    <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.5rem", fontSize: "1rem" }}>
-                      Backup Data Import (CSV)
-                    </h3>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: "1.5" }}>
-                      Choose your exported CSV data files below to import customers, physical measurements, and order logs onto this computer.
-                    </p>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                      
-                      {/* Customer Import File Upload Box */}
-                      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-gold)", borderRadius: "8px", padding: "1.2rem" }}>
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-gold-bright)", display: "block", marginBottom: "0.5rem" }}>
-                          Import Customers & Measurements:
-                        </span>
-                        <input 
-                          type="file" 
-                          accept=".csv"
-                          onChange={handleImportCustomers}
-                          style={{
-                            color: "var(--text-secondary)",
-                            fontSize: "0.8rem",
-                            cursor: "pointer"
-                          }}
-                        />
-                      </div>
-
-                      {/* Orders Import File Upload Box */}
-                      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-gold)", borderRadius: "8px", padding: "1.2rem" }}>
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-gold-bright)", display: "block", marginBottom: "0.5rem" }}>
-                          Import Orders & Billing Logs:
-                        </span>
-                        <input 
-                          type="file" 
-                          accept=".csv"
-                          onChange={handleImportOrders}
-                          style={{
-                            color: "var(--text-secondary)",
-                            fontSize: "0.8rem",
-                            cursor: "pointer"
-                          }}
-                        />
-                      </div>
-
-                    </div>
-                  </div>
-
-                  {/* Third Column: Factory Reset */}
-                  <div className="glass-card" style={{ padding: "2rem", border: "1px solid rgba(239, 68, 68, 0.3)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <div>
-                      <h3 className="brand-subtitle" style={{ color: "var(--danger)", marginBottom: "1.5rem", fontSize: "1rem" }}>
-                        System Factory Reset
-                      </h3>
-                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: "1.5" }}>
-                        WARNING: This action will permanently erase all customers, physical measurements, order pipelines, invoice transaction logs, and communication logs. The app will restart completely clean.
-                      </p>
-                    </div>
-
-                    <div>
-                      <button 
-                        className="btn btn-danger" 
-                        style={{ justifyContent: "center", width: "100%", padding: "1rem", fontWeight: 700 }}
-                        onClick={() => {
-                          if (confirm("WARNING: Are you absolutely sure you want to trigger a full system factory reset? ALL data will be permanently lost!")) {
-                            if (confirm("FINAL CONFIRMATION: Double check if you have exported backups. Wiping the database now... Proceed?")) {
-                              localStorage.setItem("matchwel_customers", JSON.stringify([]));
-                              localStorage.setItem("matchwel_orders", JSON.stringify([]));
-                              localStorage.setItem("matchwel_comms_log", JSON.stringify([]));
-                              localStorage.setItem("matchwel_initialized", "false");
-                              setCustomers([]);
-                              setOrders([]);
-                              setCommsLog([]);
-                              alert("System successfully reset to factory defaults. Restarting application...");
-                              window.location.reload();
-                            }
-                          }
-                        }}
-                      >
-                        Perform Factory Reset
-                      </button>
-                    </div>
-                  </div>
-
+                  ))}
                 </div>
-              );
-            })()}
-          </main>
-        </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. Backup / Sync Data Hub (CSV) */}
+          {activeTab === "backup" && (() => {
+            // CSV Export functions
+            const exportCustomersCSV = () => {
+              let csv = "Name,Phone,Email,Address,MeasurementsJSON\n";
+
+              customers.forEach(c => {
+                const measurementsStr = JSON.stringify(c.measurements).replace(/"/g, '""');
+                const row = [
+                  `"${c.name.replace(/"/g, '""')}"`,
+                  `"${c.phone}"`,
+                  `"${c.email}"`,
+                  `"${c.address.replace(/"/g, '""')}"`,
+                  `"${measurementsStr}"`
+                ];
+                csv += row.join(",") + "\n";
+              });
+
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.setAttribute("href", url);
+              link.setAttribute("download", `LUCKY LADIES_customers_${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            };
+
+            const exportOrdersCSV = () => {
+              let csv = "Bill_No,Customer_Phone,Customer_Name,Booking_Date,Delivery_Date,Items_List,Status,Notes\n";
+              orders.forEach(o => {
+                const itemsStr = o.items.map(item => `${item.name}:${item.qty}:${item.rate}`).join("|");
+                const row = [
+                  o.id,
+                  `"${o.customerPhone}"`,
+                  `"${o.customerName.replace(/"/g, '""')}"`,
+                  o.bookingDate,
+                  o.deliveryDate,
+                  `"${itemsStr}"`,
+                  o.status,
+                  `"${o.notes.replace(/"/g, '""')}"`
+                ];
+                csv += row.join(",") + "\n";
+              });
+
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.setAttribute("href", url);
+              link.setAttribute("download", `LUCKY LADIES_orders_${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            };
+
+            // CSV Import Handlers
+            const handleImportCustomers = (e: React.ChangeEvent<HTMLInputElement>) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                const text = evt.target?.result as string;
+                if (!text) return;
+
+                try {
+                  const lines = text.split("\n");
+                  const importedCusts: Customer[] = [];
+
+                  for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Parse CSV line handling quotes
+                    const cols: string[] = [];
+                    let current = "";
+                    let inQuotes = false;
+                    for (let j = 0; j < line.length; j++) {
+                      const char = line[j];
+                      if (char === '"') {
+                        inQuotes = !inQuotes;
+                      } else if (char === ',' && !inQuotes) {
+                        cols.push(current.trim());
+                        current = "";
+                      } else {
+                        current += char;
+                      }
+                    }
+                    cols.push(current.trim());
+
+                    if (cols.length < 4) continue;
+
+                    const [name, phone, email, address] = cols;
+                    const shirtLength = cols[4] || "";
+                    const shirtChest = cols[5] || "";
+                    const shirtWaist = cols[6] || "";
+                    const shirtSeat = cols[7] || "";
+                    const shirtShoulder = cols[8] || "";
+                    const shirtSleeve = cols[9] || "";
+                    const shirtCollar = cols[10] || "";
+
+                    const pantLength = cols[16] || "";
+                    const pantWaist = cols[17] || "";
+                    const pantSeat = cols[18] || "";
+                    const pantKnee = cols[19] || "";
+                    const pantBottom = cols[20] || "";
+                    const pantThigh = cols[21] || "";
+                    const pantInseam = cols[22] || "";
+
+                    importedCusts.push({
+                      id: "c" + (customers.length + importedCusts.length + 1),
+                      name,
+                      phone,
+                      email,
+                      address,
+                      measurements: {
+                        blouse: {
+                          "1. उंची": shirtLength,
+                          "2. शोल्डर": shirtShoulder,
+                          "3. छाती": shirtChest,
+                          "4. कंबर": shirtWaist,
+                          "5. शिट": shirtSeat,
+                          "6. बाही": shirtSleeve,
+                          "7. पु. गळा": shirtCollar,
+                          "8. मा. गळा": ""
+                        },
+                        pant: {
+                          "1. उंची": pantLength,
+                          "2. कंबर": pantWaist,
+                          "3. हिट": pantSeat,
+                          "4. मांडी": pantThigh,
+                          "5. गुडघा": pantKnee,
+                          "6. बॉटम": pantBottom,
+                          "7. अंदर लाईन": pantInseam
+                        }
+                      }
+                    });
+                  }
+
+                  if (importedCusts.length > 0) {
+                    setCustomers(prev => {
+                      // Avoid duplicates by phone number
+                      const filteredPrev = prev.filter(c => !importedCusts.some(ic => ic.phone === c.phone));
+                      return [...filteredPrev, ...importedCusts];
+                    });
+                    alert(`Successfully imported ${importedCusts.length} clients!`);
+                  } else {
+                    alert("No valid client rows found in CSV.");
+                  }
+                } catch (err) {
+                  alert("Failed to parse CSV. Please verify formatting.");
+                }
+              };
+              reader.readAsText(file);
+            };
+
+            const handleImportOrders = (e: React.ChangeEvent<HTMLInputElement>) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                const text = evt.target?.result as string;
+                if (!text) return;
+
+                try {
+                  const lines = text.split("\n");
+                  const importedOrders: Order[] = [];
+
+                  for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Parse CSV line handling quotes
+                    const cols: string[] = [];
+                    let current = "";
+                    let inQuotes = false;
+                    for (let j = 0; j < line.length; j++) {
+                      const char = line[j];
+                      if (char === '"') {
+                        inQuotes = !inQuotes;
+                      } else if (char === ',' && !inQuotes) {
+                        cols.push(current.trim());
+                        current = "";
+                      } else {
+                        current += char;
+                      }
+                    }
+                    cols.push(current.trim());
+
+                    if (cols.length < 5) continue;
+
+                    const [billNo, phone, name, booking, delivery, itemsList, status, notes] = cols;
+
+                    // Parse items back from format "SHIRT:2:500|PANT:1:600"
+                    const items: OrderItem[] = (itemsList || "").split("|").map(chunk => {
+                      const [itemName, qty, rate] = chunk.split(":");
+                      return {
+                        name: itemName || "SHIRT",
+                        qty: Number(qty) || 0,
+                        rate: Number(rate) || 500
+                      };
+                    }).filter(item => item.qty > 0);
+
+                    importedOrders.push({
+                      id: billNo,
+                      customerId: "imported",
+                      customerName: name,
+                      customerPhone: phone,
+                      bookingDate: booking,
+                      deliveryDate: delivery,
+                      items,
+                      status: (status as Order["status"]) || "Draft",
+                      notes: notes || ""
+                    });
+                  }
+
+                  if (importedOrders.length > 0) {
+                    setOrders(prev => {
+                      // Avoid duplicates by bill no
+                      const filteredPrev = prev.filter(o => !importedOrders.some(io => io.id === o.id));
+                      return [...filteredPrev, ...importedOrders];
+                    });
+                    alert(`Successfully imported ${importedOrders.length} orders!`);
+                  } else {
+                    alert("No valid order rows found in CSV.");
+                  }
+                } catch (err) {
+                  alert("Failed to parse CSV. Please verify formatting.");
+                }
+              };
+              reader.readAsText(file);
+            };
+
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem" }}>
+
+                {/* Left Column: Export Hub */}
+                <div className="glass-card" style={{ padding: "2rem" }}>
+                  <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.5rem", fontSize: "1rem" }}>
+                    Backup Data Export (CSV)
+                  </h3>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: "1.5" }}>
+                    Export all custom measurements, customer contact folders, and order delivery calendar histories into standard CSV files. You can save these files on a USB drive to migrate system states to a new computer easily.
+                  </p>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <button className="btn btn-primary" style={{ justifyContent: "center", width: "100%", padding: "1rem" }} onClick={exportCustomersCSV}>
+                      Export Customers & Measurements Book
+                    </button>
+                    <button className="btn btn-secondary" style={{ justifyContent: "center", width: "100%", padding: "1rem" }} onClick={exportOrdersCSV}>
+                      Export Stitching Orders & Billing History
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Column: Import Hub */}
+                <div className="glass-card" style={{ padding: "2rem" }}>
+                  <h3 className="brand-subtitle" style={{ color: "var(--color-gold)", marginBottom: "1.5rem", fontSize: "1rem" }}>
+                    Backup Data Import (CSV)
+                  </h3>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: "1.5" }}>
+                    Choose your exported CSV data files below to import customers, physical measurements, and order logs onto this computer.
+                  </p>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+                    {/* Customer Import File Upload Box */}
+                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-gold)", borderRadius: "8px", padding: "1.2rem" }}>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-gold-bright)", display: "block", marginBottom: "0.5rem" }}>
+                        Import Customers & Measurements:
+                      </span>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleImportCustomers}
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: "0.8rem",
+                          cursor: "pointer"
+                        }}
+                      />
+                    </div>
+
+                    {/* Orders Import File Upload Box */}
+                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-gold)", borderRadius: "8px", padding: "1.2rem" }}>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-gold-bright)", display: "block", marginBottom: "0.5rem" }}>
+                        Import Orders & Billing Logs:
+                      </span>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleImportOrders}
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: "0.8rem",
+                          cursor: "pointer"
+                        }}
+                      />
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Third Column: Factory Reset */}
+                <div className="glass-card" style={{ padding: "2rem", border: "1px solid rgba(239, 68, 68, 0.3)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div>
+                    <h3 className="brand-subtitle" style={{ color: "var(--danger)", marginBottom: "1.5rem", fontSize: "1rem" }}>
+                      System Factory Reset
+                    </h3>
+                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: "1.5" }}>
+                      WARNING: This action will permanently erase all customers, physical measurements, order pipelines, invoice transaction logs, and communication logs. The app will restart completely clean.
+                    </p>
+                  </div>
+
+                  <div>
+                    <button
+                      className="btn btn-danger"
+                      style={{ justifyContent: "center", width: "100%", padding: "1rem", fontWeight: 700 }}
+                      onClick={() => {
+                        if (confirm("WARNING: Are you absolutely sure you want to trigger a full system factory reset? ALL data will be permanently lost!")) {
+                          if (confirm("FINAL CONFIRMATION: Double check if you have exported backups. Wiping the database now... Proceed?")) {
+                            localStorage.clear();
+                            setCustomers([]);
+                            setOrders([]);
+                            setCommsLog([]);
+                            alert("System successfully reset to factory defaults. Restarting application...");
+                            window.location.reload();
+                          }
+                        }
+                      }}
+                    >
+                      Perform Factory Reset
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
+
+          {/* 6. Settings Tab */}
+          {activeTab === "settings" && (() => {
+            const handleSaveSettings = () => {
+              setCategories(editCategories);
+              localStorage.setItem("lucky_categories", JSON.stringify(editCategories));
+              alert("Settings saved! (सेटिंग्ज सेव्ह झाल्या!)");
+            };
+
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                  Configure garment categories and their measurement point lists. Each category appears in the booking form and CRM fittings panel.
+                </p>
+
+                {editCategories.map((cat, catIdx) => (
+                  <div key={cat.id} className="glass-card" style={{ padding: "1.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.3rem" }}>Category Title</label>
+                        <input
+                          type="text"
+                          value={cat.title}
+                          onChange={e => {
+                            const updated = [...editCategories];
+                            updated[catIdx] = { ...updated[catIdx], title: e.target.value };
+                            setEditCategories(updated);
+                          }}
+                          style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-gold)", borderRadius: "6px", padding: "0.5rem 0.8rem", color: "var(--text-primary)", fontSize: "1rem", fontWeight: 600 }}
+                        />
+                      </div>
+                      <button
+                        className="btn btn-danger"
+                        style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", marginTop: "1.2rem" }}
+                        onClick={() => setEditCategories(prev => prev.filter((_, i) => i !== catIdx))}
+                      >
+                        <Trash2 size={14} /> Delete Category
+                      </button>
+                    </div>
+
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                          <th style={{ textAlign: "left", padding: "0.5rem", color: "var(--text-muted)", width: "100px" }}>Point No.</th>
+                          <th style={{ textAlign: "left", padding: "0.5rem", color: "var(--text-muted)" }}>Measurement Name</th>
+                          <th style={{ width: "80px" }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cat.fields.map((field, fieldIdx) => (
+                          <tr key={fieldIdx} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                            <td style={{ padding: "0.4rem" }}>
+                              <input
+                                type="text"
+                                value={field.point}
+                                onChange={e => {
+                                  const updated = [...editCategories];
+                                  updated[catIdx].fields[fieldIdx] = { ...field, point: e.target.value };
+                                  setEditCategories([...updated]);
+                                }}
+                                style={{ width: "80px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "0.35rem 0.5rem", color: "var(--color-gold-bright)", fontWeight: 700, textAlign: "center" }}
+                              />
+                            </td>
+                            <td style={{ padding: "0.4rem" }}>
+                              <input
+                                type="text"
+                                value={field.name}
+                                onChange={e => {
+                                  const updated = [...editCategories];
+                                  updated[catIdx].fields[fieldIdx] = { ...field, name: e.target.value };
+                                  setEditCategories([...updated]);
+                                }}
+                                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "0.35rem 0.8rem", color: "var(--text-primary)" }}
+                              />
+                            </td>
+                            <td style={{ padding: "0.4rem", textAlign: "center" }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...editCategories];
+                                  updated[catIdx].fields = updated[catIdx].fields.filter((_, i) => i !== fieldIdx);
+                                  setEditCategories([...updated]);
+                                }}
+                                style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: "0.9rem" }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ marginTop: "0.8rem", padding: "0.35rem 0.8rem", fontSize: "0.8rem" }}
+                      onClick={() => {
+                        const updated = [...editCategories];
+                        const nextNum = updated[catIdx].fields.length + 1;
+                        updated[catIdx].fields = [...updated[catIdx].fields, { point: `${nextNum}.`, name: "" }];
+                        setEditCategories([...updated]);
+                      }}
+                    >
+                      <PlusCircle size={14} style={{ marginRight: 4 }} /> Add Point
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ alignSelf: "flex-start" }}
+                  onClick={() => {
+                    const newId = `cat_${Date.now()}`;
+                    setEditCategories(prev => [...prev, { id: newId, title: "New Category", fields: [{ point: "1.", name: "" }] }]);
+                  }}
+                >
+                  <PlusCircle size={16} style={{ marginRight: 6 }} /> Add Category
+                </button>
+
+                <div style={{ display: "flex", gap: "1rem", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1.5rem" }}>
+                  <button className="btn btn-primary" onClick={handleSaveSettings}>
+                    Save Configuration (सेव्ह करा)
+                  </button>
+                  <button
+                    className="btn btn-danger"
+                    style={{ background: "var(--danger)", border: "none" }}
+                    onClick={() => {
+                      if (confirm("WARNING: Are you absolutely sure you want to trigger a full system factory reset? ALL data will be permanently lost!")) {
+                        localStorage.clear();
+                        setCustomers([]);
+                        setOrders([]);
+                        setCommsLog([]);
+                        alert("System successfully reset to factory defaults. Restarting application...");
+                        window.location.reload();
+                      }
+                    }}
+                  >
+                    Factory Reset (फॅक्टरी रीसेट)
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+        </main>
+      </div>
 
       {/* A. Wide Customer and Measurement Registration Modal */}
       {showAddCustomerModal && (
@@ -2420,132 +2539,42 @@ export default function App() {
 
               <div className="paper-form-card">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem", borderBottom: "1px solid #ccc", paddingBottom: "0.5rem" }}>
-                  <span style={{ color: "#000", fontWeight: 800 }}>Display Measurements:</span>
-                  {(["shirt", "pant", "kurta", "safari", "blazer", "sherwani", "jacket"] as const).map(cat => (
-                    <label key={cat} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", color: "#000", fontWeight: 700, cursor: "pointer", textTransform: "capitalize" }}>
-                      <input type="checkbox" checked={visibleSpecCategories.includes(cat)} onChange={() => handleSpecCheckboxToggle(cat)} />
-                      <span>{cat}</span>
+                  <span style={{ color: "#000", fontWeight: 800 }}>माप घ्या (Select Categories):</span>
+                  {categories.map(cat => (
+                    <label key={cat.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", color: "#000", fontWeight: 700, cursor: "pointer" }}>
+                      <input type="checkbox" checked={visibleSpecCategories.includes(cat.id)} onChange={() => handleSpecCheckboxToggle(cat.id)} />
+                      <span>{cat.title}</span>
                     </label>
                   ))}
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                  {visibleSpecCategories.includes("shirt") && (
-                    <div style={{ borderBottom: "1px dashed #aaa", paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>SHIRT (शर्ट) MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sLength} onChange={e => setSLength(e.target.value)} /><span className="paper-input-label">उंची</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sChest} onChange={e => setSChest(e.target.value)} /><span className="paper-input-label">छाती</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sWaist} onChange={e => setSWaist(e.target.value)} /><span className="paper-input-label">पोट</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sSeat} onChange={e => setSSeat(e.target.value)} /><span className="paper-input-label">शिट</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sShoulder} onChange={e => setSShoulder(e.target.value)} /><span className="paper-input-label">शोल्डर</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sSleeve} onChange={e => setSSleeve(e.target.value)} /><span className="paper-input-label">बाही</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sCollar} onChange={e => setSCollar(e.target.value)} /><span className="paper-input-label">कॉलर</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sCuff} onChange={e => setSCuff(e.target.value)} /><span className="paper-input-label">कफ</span></div>
+                  {categories
+                    .filter(cat => visibleSpecCategories.includes(cat.id))
+                    .map((cat, catIdx, arr) => (
+                      <div key={cat.id} style={{ borderBottom: catIdx < arr.length - 1 ? "1px dashed #aaa" : "none", paddingBottom: "1rem" }}>
+                        <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>{cat.title.toUpperCase()} MEASUREMENTS</h4>
+                        <div className="paper-input-grid">
+                          {cat.fields.map(field => {
+                            const label = getFieldLabel(field);
+                            return (
+                              <div className="paper-input-cell" key={label}>
+                                <input
+                                  type="text"
+                                  className="paper-input-field"
+                                  value={(measurementValues[cat.id] || {})[label] || ""}
+                                  onChange={e => setMeasurementValues(prev => ({
+                                    ...prev,
+                                    [cat.id]: { ...(prev[cat.id] || {}), [label]: e.target.value }
+                                  }))}
+                                />
+                                <span className="paper-input-label">{label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div style={{ display: "flex", gap: "1.2rem", marginTop: "0.5rem", color: "#000", fontWeight: 700, fontSize: "0.85rem" }}>
-                        <label><input type="checkbox" checked={sPocket} onChange={e => setSPocket(e.target.checked)} /> Pocket</label>
-                        <label><input type="checkbox" checked={sManela} onChange={e => setSManela(e.target.checked)} /> Manela</label>
-                        <label><input type="checkbox" checked={sApple} onChange={e => setSApple(e.target.checked)} /> Apple</label>
-                        <label><input type="checkbox" checked={sSideCut} onChange={e => setSSideCut(e.target.checked)} /> Side Cut</label>
-                      </div>
-                    </div>
-                  )}
-
-                  {visibleSpecCategories.includes("pant") && (
-                    <div style={{ borderBottom: "1px dashed #aaa", paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>PANT (पैंट) MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pLength} onChange={e => setPLength(e.target.value)} /><span className="paper-input-label">उंची</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pWaist} onChange={e => setPWaist(e.target.value)} /><span className="paper-input-label">कंबर</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pSeat} onChange={e => setPSeat(e.target.value)} /><span className="paper-input-label">सीट</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pKnee} onChange={e => setPKnee(e.target.value)} /><span className="paper-input-label">गुडघा</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pBottom} onChange={e => setPBottom(e.target.value)} /><span className="paper-input-label">बॉटम</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pThigh} onChange={e => setPThigh(e.target.value)} /><span className="paper-input-label">मांडी</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pInseam} onChange={e => setPInseam(e.target.value)} /><span className="paper-input-label">अंदर</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={pFront} onChange={e => setPFront(e.target.value)} /><span className="paper-input-label">फ्रंट</span></div>
-                      </div>
-                      <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem", color: "#000", fontWeight: 700, fontSize: "0.85rem" }}>
-                        <label><input type="checkbox" checked={pTight} onChange={e => { setPTight(e.target.checked); if (e.target.checked) setPLoose(false); }} /> Tight Fit</label>
-                        <label><input type="checkbox" checked={pLoose} onChange={e => { setPLoose(e.target.checked); if (e.target.checked) setPTight(false); }} /> Loose Fit</label>
-                      </div>
-                    </div>
-                  )}
-
-                  {visibleSpecCategories.includes("kurta") && (
-                    <div style={{ borderBottom: "1px dashed #aaa", paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>KURTA MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={kLength} onChange={e => setKLength(e.target.value)} /><span className="paper-input-label">Length</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={kChest} onChange={e => setKChest(e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={kWaist} onChange={e => setKWaist(e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={kSeat} onChange={e => setKSeat(e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={kShoulder} onChange={e => setKShoulder(e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={kSleeve} onChange={e => setKSleeve(e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                        <div className="paper-input-cell" style={{ gridColumn: "span 2" }}><input type="text" className="paper-input-field" value={kCollar} onChange={e => setKCollar(e.target.value)} /><span className="paper-input-label">Collar</span></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {visibleSpecCategories.includes("safari") && (
-                    <div style={{ borderBottom: "1px dashed #aaa", paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>SAFARI MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sfLength} onChange={e => setSfLength(e.target.value)} /><span className="paper-input-label">Length</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sfChest} onChange={e => setSfChest(e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sfWaist} onChange={e => setSfWaist(e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sfSeat} onChange={e => setSfSeat(e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sfShoulder} onChange={e => setSfShoulder(e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={sfSleeve} onChange={e => setSfSleeve(e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                        <div className="paper-input-cell" style={{ gridColumn: "span 2" }}><input type="text" className="paper-input-field" value={sfCollar} onChange={e => setSfCollar(e.target.value)} /><span className="paper-input-label">Collar</span></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {visibleSpecCategories.includes("blazer") && (
-                    <div style={{ borderBottom: "1px dashed #aaa", paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>BLAZER MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bLength} onChange={e => setBLength(e.target.value)} /><span className="paper-input-label">Length</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bChest} onChange={e => setBChest(e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bWaist} onChange={e => setBWaist(e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bSeat} onChange={e => setBSeat(e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bShoulder} onChange={e => setBShoulder(e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bSleeve} onChange={e => setBSleeve(e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bLapel} onChange={e => setBLapel(e.target.value)} /><span className="paper-input-label">Lapel</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={bAcrossBack} onChange={e => setBAcrossBack(e.target.value)} /><span className="paper-input-label">Across Back</span></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {visibleSpecCategories.includes("sherwani") && (
-                    <div style={{ borderBottom: "1px dashed #aaa", paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>SHERWANI MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={shLength} onChange={e => setShLength(e.target.value)} /><span className="paper-input-label">Length</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={shChest} onChange={e => setShChest(e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={shWaist} onChange={e => setShWaist(e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={shSeat} onChange={e => setShSeat(e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={shShoulder} onChange={e => setShShoulder(e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={shSleeve} onChange={e => setShSleeve(e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                        <div className="paper-input-cell" style={{ gridColumn: "span 2" }}><input type="text" className="paper-input-field" value={shCollar} onChange={e => setShCollar(e.target.value)} /><span className="paper-input-label">Collar</span></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {visibleSpecCategories.includes("jacket") && (
-                    <div style={{ paddingBottom: "1rem" }}>
-                      <h4 style={{ color: "#000", fontWeight: 800, marginBottom: "0.5rem" }}>JACKET MEASUREMENTS</h4>
-                      <div className="paper-input-grid">
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={jLength} onChange={e => setJLength(e.target.value)} /><span className="paper-input-label">Length</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={jChest} onChange={e => setJChest(e.target.value)} /><span className="paper-input-label">Chest</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={jWaist} onChange={e => setJWaist(e.target.value)} /><span className="paper-input-label">Waist</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={jSeat} onChange={e => setJSeat(e.target.value)} /><span className="paper-input-label">Seat</span></div>
-                        <div className="paper-input-cell"><input type="text" className="paper-input-field" value={jShoulder} onChange={e => setJShoulder(e.target.value)} /><span className="paper-input-label">Shoulder</span></div>
-                        <div className="paper-input-cell" style={{ gridColumn: "span 3" }}><input type="text" className="paper-input-field" value={jSleeve} onChange={e => setJSleeve(e.target.value)} /><span className="paper-input-label">Sleeve</span></div>
-                      </div>
-                    </div>
-                  )}
+                    ))}
                 </div>
               </div>
 
@@ -2573,7 +2602,7 @@ export default function App() {
                       <tr key={index}>
                         <td style={{ textAlign: "center" }}>{index + 1}</td>
                         <td>
-                          <select 
+                          <select
                             style={{
                               width: "100%",
                               padding: "0.4rem",
@@ -2585,33 +2614,35 @@ export default function App() {
                             value={row.garment}
                             onChange={e => handleBillingRowChange(index, "garment", e.target.value)}
                           >
-                            <option value="SHIRT">SHIRT</option>
-                            <option value="PANT">PANT</option>
-                            <option value="KURTA">KURTA</option>
-                            <option value="SAFARI">SAFARI</option>
-                            <option value="JACKET">JACKET</option>
-                            <option value="BLAZER">BLAZER</option>
-                            <option value="SHERWANI">SHERWANI</option>
+                            <option value="ब्लाऊज (Blouse)">ब्लाऊज (Blouse)</option>
+                            <option value="चुडीदार (Chudidar)">चुडीदार (Chudidar)</option>
+                            <option value="आम्ब्रेला (Umbrella)">आम्ब्रेला (Umbrella)</option>
+                            <option value="शाळेचा युनिफॉर्म (School Uniform)">शाळेचा युनिफॉर्म (School Uniform)</option>
+                            {categories.map(cat => {
+                              if (cat.id === "blouse") return null;
+                              return <option key={cat.id} value={cat.title}>{cat.title}</option>;
+                            })}
+                            <option value="इतर (Other)">इतर (Other)</option>
                           </select>
                         </td>
                         <td>
-                          <input 
-                            type="number" 
-                            min={0} 
-                            className="search-input" 
-                            style={{ textAlign: "center", padding: "0.4rem" }} 
-                            value={row.qty} 
-                            onChange={e => handleBillingRowChange(index, "qty", Number(e.target.value))} 
+                          <input
+                            type="number"
+                            min={0}
+                            className="search-input"
+                            style={{ textAlign: "center", padding: "0.4rem" }}
+                            value={row.qty}
+                            onChange={e => handleBillingRowChange(index, "qty", Number(e.target.value))}
                           />
                         </td>
                         <td>
-                          <input 
-                            type="number" 
-                            min={0} 
-                            className="search-input" 
-                            style={{ textAlign: "right", padding: "0.4rem" }} 
-                            value={row.rate} 
-                            onChange={e => handleBillingRowChange(index, "rate", Number(e.target.value))} 
+                          <input
+                            type="number"
+                            min={0}
+                            className="search-input"
+                            style={{ textAlign: "right", padding: "0.4rem" }}
+                            value={row.rate}
+                            onChange={e => handleBillingRowChange(index, "rate", Number(e.target.value))}
                           />
                         </td>
                         <td style={{ textAlign: "right", fontWeight: 700 }}>₹{row.qty * row.rate}</td>
